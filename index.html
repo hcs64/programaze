@@ -25,56 +25,6 @@ canvas#cnv {
 <canvas id="cnv"></canvas>
 <script src="anim.js"></script>
 <script src="move.js"></script>
-<script>
-'use strict';
-const cnv = document.getElementById('cnv');
-cnv.width = cnv.offsetWidth;
-cnv.height = cnv.offsetHeight;
-let ctx = cnv.getContext('2d');
-
-let msg = 'hello canvas';
-if (window.devicePixelRatio) {
-  const dpr = window.devicePixelRatio;
-  const width = cnv.width;
-  const height = cnv.height
-
-  cnv.width = width * dpr;
-  cnv.height = height * dpr;
-  ctx.scale(dpr, dpr);
-  msg += ' dpr=' + dpr;
-}
-
-const move = MOVE();
-let anim1, anim2, blendAnim;
-
-let startTime = null;
-
-const bounce = [{t:0, x:0}, {t:500, x: -80, f: MOVE.quadout}, {t:1000, x: 0, f: MOVE.quadin}];
-const bounce2 = [{t:0, x:0}, {t:250, x: -40, f: MOVE.quadout}, {t:500, x: 0, f: MOVE.quadin}];
-
-const draw = function (t) {
-  if (typeof blendAnim !== 'object') {
-    anim1 = move.setupAnim(bounce, t, 100, -1);
-
-    anim2 = move.setupAnim(bounce2, t, 100, -1);
-
-    blendAnim = move.setupAnim([{t:0, x:0}, {t:5000, x: 0}, {t:10000, x: 1}], t, 0);
-
-    window.requestAnimationFrame(draw);
-  } else {
-    /*if (!move.isAnimDone(blendAnim, t))*/ {
-      const x = move.blendWithBy(anim1, anim2, blendAnim, t);
-      ctx.clearRect(0, 0, cnv.width, cnv.height);
-      ctx.font = '20px serif';
-      ctx.fillStyle = 'red';
-      ctx.fillText(msg, 100, x);
-
-      window.requestAnimationFrame(draw);
-    }
-  }
-};
-
-window.requestAnimationFrame(draw);
-</script>
+<script src="main.js"></script>
 </body>
 </html>
