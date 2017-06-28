@@ -1,6 +1,11 @@
 (function(){
 
 'use strict';
+
+const GUY_COLOR = 'orange';
+const GOAL_COLOR = 'blue';
+const BG_COLOR = 'black';
+
 const cnv = document.getElementById('cnv');
 cnv.width = cnv.offsetWidth;
 cnv.height = cnv.offsetHeight;
@@ -37,11 +42,12 @@ const lerp = function (x0, x1, t) {
 };
 
 
-const drawGrid = function (grid, progress) {
-  const gridX = 100, gridY = 100, gridW = 20, gridH = 20;
-  const zeroW = gridW * .6, zeroH = gridH * .6;
-  const oneW = gridW * .2, oneH = gridH * .6;
-  const zeroInnerW = gridW * .3, zeroInnerH = gridH * .3;
+const gridW = 20, gridH = 20;
+const zeroW = gridW * .6, zeroH = gridH * .6;
+const oneW = gridW * .2, oneH = gridH * .6;
+const zeroInnerW = gridW * .3, zeroInnerH = gridH * .3;
+
+const drawGrid = function (grid, gridX, gridY, t, guyAt, goalAt) {
   for (let j = 0; j < grid.length; j ++) {
     for (let i = 0; i < grid[j].length; i ++) {
       const x = gridX + i * gridW;
@@ -57,23 +63,23 @@ const drawGrid = function (grid, progress) {
         const w1 = gridW;
         const h1 = gridH;
 
-        const xN = lerp(x0, x1, progress);
-        const yN = lerp(y0, y1, progress);
-        const wN = lerp(w0, w1, progress);
-        const hN = lerp(h0, h1, progress);
+        const xN = lerp(x0, x1, t);
+        const yN = lerp(y0, y1, t);
+        const wN = lerp(w0, w1, t);
+        const hN = lerp(h0, h1, t);
 
-        const vN = Math.floor(lerp(255, 128, progress));
+        const vN = Math.floor(lerp(255, 128, t));
         ctx.fillStyle = `rgb(${vN},${vN},${vN})`;
         ctx.fillRect(xN, yN, wN, hN);
 
-        if (progress > 0) {
-          const v = Math.floor(lerp(255, 64, progress));
+        if (t > 0) {
+          const v = Math.floor(lerp(255, 64, t));
           ctx.strokeStyle = `rgb(${v},${v},${v})`;
 
           ctx.strokeRect(xN, yN, wN, hN);
         }
       } else {
-        if (progress < 1) {
+        if (t < 1) {
           {
             const x0 = x + (gridW - zeroW)/2;
             const y0 = y + (gridH - zeroH)/2;
@@ -85,10 +91,10 @@ const drawGrid = function (grid, progress) {
             const w1 = 0;
             const h1 = 0;
 
-            const xN = lerp(x0, x1, progress);
-            const yN = lerp(y0, y1, progress);
-            const wN = lerp(w0, w1, progress);
-            const hN = lerp(h0, h1, progress);
+            const xN = lerp(x0, x1, t);
+            const yN = lerp(y0, y1, t);
+            const wN = lerp(w0, w1, t);
+            const hN = lerp(h0, h1, t);
             ctx.fillStyle = 'white';
             ctx.fillRect(xN, yN, wN, hN)
           }
@@ -103,18 +109,43 @@ const drawGrid = function (grid, progress) {
             const w1 = 0;
             const h1 = 0;
 
-            const xN = lerp(x0, x1, progress);
-            const yN = lerp(y0, y1, progress);
-            const wN = lerp(w0, w1, progress);
-            const hN = lerp(h0, h1, progress);
-            ctx.fillStyle = 'black';
+            const xN = lerp(x0, x1, t);
+            const yN = lerp(y0, y1, t);
+            const wN = lerp(w0, w1, t);
+            const hN = lerp(h0, h1, t);
+
+            if (i === guyAt.x && j === guyAt.y) {
+              ctx.fillStyle = GUY_COLOR;
+            } else if (i === goalAt.x && j === goalAt.y) {
+              ctx.fillStyle = GOAL_COLOR;
+            }  else {
+              ctx.fillStyle = BG_COLOR;
+            }
             ctx.fillRect(xN, yN, wN, hN);
           }
         }
+      } // end else (0)
+    } // end i loop
+  } // end j loop
+};
+
+const drawBGGrid = function (grid, gridX, gridY, t) {
+  if (t === 0) {
+    return;
+  }
+  const vN = Math.floor(lerp(0, 64, t));
+  ctx.strokeStyle = `rgb(${vN},${vN},${vN})`;
+
+  for (let j = 0; j < grid.length; j++) {
+    for (let i = 0; i < grid[j].length; i++) {
+      if (grid[j][i] === 0) {
+        const x = gridX + i * gridW;
+        const y = gridY + j * gridH;
+        ctx.strokeRect(x, y, gridW, gridH);
       }
     }
   }
-};  
+};
 
 let toggle = false;
 const draw = function (t) {
@@ -137,7 +168,7 @@ const draw = function (t) {
   const x = xpos + size * move.animAt(crawlAnim, t);
   */
   ctx.clearRect(0, 0, cnv.width, cnv.height);
-  ctx.fillStyle = 'black'
+  ctx.fillStyle = BG_COLOR;
   ctx.fillRect(0, 0, cnv.width, cnv.height);
 
   /*
@@ -152,10 +183,7 @@ const draw = function (t) {
   ctx.stroke();
   */
 
-  /*
-  ctx.fillStyle = 'orange';
-  ctx.fillRect(x, 100 + size/2-h/2, w, h);
-  */
+  const progress = move.animAt(transformAnim, t);
 
   const grid = [[1,1,1,1,1,1],
                 [1,1,1,0,1,1],
@@ -163,21 +191,11 @@ const draw = function (t) {
                 [1,1,1,0,1,1],
                 [1,1,1,1,1,1]];
 
-  const progress = move.animAt(transformAnim, t);
-  drawGrid(grid, progress);
+  drawBGGrid(grid, 100, 100, progress);
+  ctx.fillStyle = GUY_COLOR;
+  ctx.fillRect(101 + 20*2, 101 + 20*2, 18, 18);
 
-  /*
-  ctx.fillStyle = '#808080';
-  ctx.strokeStyle = '#404040';
-  for (let j = 0; j < grid.length; j ++) {
-    for (let i = 0; i < grid[j].length; i ++) {
-      if (grid[j][i] === 1) {
-        ctx.fillRect(x+w*i, y+h*j, w, h);
-      }
-      ctx.strokeRect(x+w*i, y+h*j, w, h);
-    }
-  }
-  */
+  drawGrid(grid, 100, 100, progress, {x:2,y:2}, {x:3,y:2});
 
   if (move.isAnimDone(transformAnim, t)) {
     //stretchAnim = undefined;
@@ -189,6 +207,10 @@ const draw = function (t) {
     window.requestAnimationFrame(draw);
   }
 };
+
+document.body.addEventListener('click', function () {
+  window.requestAnimationFrame(draw);
+});
 
 window.addEventListener('keydown', function () {
   window.requestAnimationFrame(draw);
