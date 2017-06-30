@@ -50,6 +50,8 @@ let GRID_Y = 10;
 let TEXT_X = 10;
 let TEXT_Y = 10;
 
+let LEVEL_STATE = null;
+
 const cnv = document.getElementById('cnv');
 const ctx = cnv.getContext('2d');
 
@@ -435,15 +437,16 @@ const requestDraw = function () {
   }
 };
 
-const click = function ({i, j}) {
-  if (GRID[j][i] === 1) {
-    GRID[j][i] = 0;
+const click = function (state, {i, j}) {
+  if (state.grid[j][i] === 1) {
+    state.grid[j][i] = 0;
   } else {
-    GRID[j][i] = 1;
+    state.grid[j][i] = 1;
   }
   requestDraw();
 };
 
+/*
 let toggle = true;
 const flipToggle = function (t) {
   if (!transformAnim) {
@@ -458,16 +461,7 @@ const flipToggle = function (t) {
   }
   requestDraw();
 };
-
-const GRID = [[1,1,0,0,1,1,1,1],
-              [1,1,1,0,1,1,1,1],
-              [1,0,0,0,0,1,1,1],
-              [1,1,1,0,1,1,1,1],
-              [1,1,1,1,1,1,1,1],
-              [1,0,0,0,0,0,0,0],
-              [1,0,1,0,1,0,0,0],
-              [1,0,0,0,0,0,0,0]];
-
+*/
 
 const draw = function (t) {
   DRAW_IN_FLIGHT = false;
@@ -476,39 +470,148 @@ const draw = function (t) {
   ctx.fillStyle = BG_COLOR;
   ctx.fillRect(0, 0, cnv.width, cnv.height);
 
-  const progress =
-    transformAnim ? move.animAt(transformAnim, t) : (toggle ? 0 : 1);
+  const progress = 0;
+//    transformAnim ? move.animAt(transformAnim, t) : (toggle ? 0 : 1);
 
-  drawBGGrid(GRID, progress);
+  drawBGGrid(LEVEL_STATE.grid, progress);
 
-  drawGoal({i:3, j:2});
-  drawGuy({i:2.5, j:2});
+  drawGoal(LEVEL_STATE.goalAt);
+  drawGuy(LEVEL_STATE.guyAt);
 
-  drawGrid(GRID, progress, {i:2,j:2}, {i:3,j:2});
+  drawGrid(LEVEL_STATE.grid, progress, LEVEL_STATE.guyAt, LEVEL_STATE.goalAt);
 
-  drawControls(SHOW_PLAY, PLAY_PRESSED, STEP_PRESSED);
+  drawControls(!LEVEL_STATE.noPlay, PLAY_PRESSED, STEP_PRESSED);
 
   drawLegend(progress);
 
-  if (transformAnim && move.isAnimDone(transformAnim, t)) {
-    //stretchAnim = undefined;
-    //crawlAnim = undefined;
-    //xpos += size * 1.2;
-    //window.requestAnimationFrame(draw);
-    transformAnim = undefined;
-  } else {
-    requestDraw();
+  if (transformAnim) {
+    if (move.isAnimDone(transformAnim, t)) {
+      //stretchAnim = undefined;
+      //crawlAnim = undefined;
+      //xpos += size * 1.2;
+      //window.requestAnimationFrame(draw);
+      transformAnim = undefined;
+    } else {
+      requestDraw();
+    }
   }
 };
 
+const LEVELS = [
+  // level 0
+  {
+    msg: 'Click Step repeatedly to run the program.',
+    grid: [[0,0,0,0,0,0,0,0],
+           [1,1,0,0,0,0,0,0],
+           [0,0,0,0,0,0,0,0],
+           [0,0,0,0,0,0,0,0],
+           [0,0,0,0,0,0,0,0],
+           [0,0,0,0,0,0,0,0],
+           [0,0,0,0,0,0,0,0],
+           [0,0,0,0,0,0,0,0]],
+    guyAt: {i: 6, j: 0},
+    goalAt: {i: 2, j: 1},
+    noPlay: true
+  },
+  // level 1
+  { msg: 'You can toggle the bits of the program by clicking them.',
+    guyAt: {i: 2, j: 2},
+    goalAt: {i: 6, j: 3},
+    noPlay: true
+  },
+  // level 2
+  { msg: 'Clicking Play will run the program automatically',
+    guyAt: {i: 6, j: 0},
+    goalAt: {i: 1, j: 3},
+  },
+  // level 3
+  { guyAt: {i: 5, j: 7},
+    goalAt: {i: 1, j: 0},
+  },
+  // level 4
+  { guyAt: {i: 3, j: 0},
+    goalAt: {i: 3, j: 7},
+  },
+  // level 5
+  { guyAt: {i: 4, j: 7},
+    goalAt: {i: 4, j: 0},
+  },
+  {msg: 'Boss puzzle!'},
+  // level 6
+  { guyAt: {i: 1, j: 7},
+    goalAt: {i: 6, j: 0},
+  },
+  {msg: 'Final phase!'},
+  // level 7
+  { guyAt: {i: 1, j: 0},
+    goalAt: {i: 6, j: 0},
+  },
+  {msg: 'Thanks for playing!'}
+];
+
+const initLevel = function (level) {
+  const state = {grid: []};
+  for (let j = 0; j < GRID_ROWS; j ++) {
+    const row = [];
+    state.grid.push(row);
+    for (let i = 0; i < GRID_COLS; i ++) {
+      if (!level.grid) {
+        row.push(0);
+      } else {
+        row.push(level.grid[j][i]);
+      }
+    }
+  }
+
+  state.guyAtInit = level.guyAt;
+  state.goalAt = level.goalAt;
+  state.noPlay = level.noPlay;
+
+  return state;
+};
+
+const resetLevel = function (state) {
+  // doesn't touch grid
+  state.guyAt = {i: state.guyAtInit.i, j: state.guyAtInit.j};
+  state.pc = 0;
+};
+
+const showMessage = function (msg) {
+  const div = document.getElementById('message');
+  div.style.visibility = 'visible';
+  div.textContent = msg;
+};
+const hideMessage = function () {
+  const div = document.getElementById('message');
+  div.textContent = '';
+  div.style.visibility = 'hidden';
+};
+
+
+// main code starts here
+
+let curLevel = 1;
+if (LEVELS[curLevel].msg) {
+  showMessage(LEVELS[curLevel].msg);
+} else {
+  hideMessage();
+}
+LEVEL_STATE = initLevel(LEVELS[curLevel]);
+resetLevel(LEVEL_STATE);
 requestDraw();
 
 cnv.addEventListener('click', function (e) {
+  if (e.button !== 0) {
+    return;
+  }
+
+  e.preventDefault();
   const x = e.pageX/RESIZE_SCALE;
   const y = e.pageY/RESIZE_SCALE;
   if (x >= GRID_X && x < GRID_X + GRID_W * GRID_COLS &&
       y >= GRID_Y && y < GRID_Y * GRID_H * GRID_ROWS) {
-    click({i: Math.floor((x - GRID_X) / GRID_W),
+    click(LEVEL_STATE,
+          {i: Math.floor((x - GRID_X) / GRID_W),
            j: Math.floor((y - GRID_Y) / GRID_H)});
   } else if (x >= CONTROLS_X && x < CONTROLS_X + CONTROL_W &&
              y >= CONTROLS_Y && y < CONTROLS_Y + CONTROL_H) {
