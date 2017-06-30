@@ -47,6 +47,8 @@ const PORTRAIT_GRID_Y = 220;
 let GRID_X = 10;
 let GRID_Y = 10;
 
+const GRID_ANIM_MS = 150;
+
 let TEXT_X = 10;
 let TEXT_Y = 10;
 
@@ -501,15 +503,43 @@ const draw = function (t) {
 
 //    transformAnim ? move.animAt(transformAnim, t) : (toggle ? 0 : 1);
 
-  drawBGGrid(LEVEL_STATE.grid, LEVEL_STATE.progress);
+  let progress = LEVEL_STATE.progress;
+
+  LEVEL_STATE.progressAnim.forEach(function (f) {
+    if (!f.timeOffset) {
+      f.t += t;
+      f.timeOffset = true;
+    }
+  });
+
+  let curProgressFrame = LEVEL_STATE.progressAnim[0], prevProgressFrame;
+  while (LEVEL_STATE.progressAnim.length > 0 && curProgressFrame.t <= t) {
+    prevProgressFrame = LEVEL_STATE.progressAnim.shift();
+    curProgressFrame = LEVEL_STATE.progressAnim[0];
+  }
+  if (curProgressFrame && LEVEL_STATE.progressAnim.length === 0) {
+    progress = curProgressFrame.x;
+  } else if (curProgressFrame && prevProgressFrame) {
+    progress = lerp(prevProgressFrame.x, curProgressFrame.x,
+      (t - prevProgressFrame.t) / (curProgressFrame.t - prevProgressFrame.t));
+    
+  }
+
+  if (LEVEL_STATE.progressAnim.length > 0) {
+    if (prevProgressFrame) {
+      LEVEL_STATE.progressAnim.unshift(prevProgressFrame);
+    }
+    requestDraw();
+  }
+  drawBGGrid(LEVEL_STATE.grid, progress);
 
   drawGoal(LEVEL_STATE.goalAt);
   drawGuy(LEVEL_STATE.guyAt);
 
-  drawGrid(LEVEL_STATE.grid, LEVEL_STATE.progress,
+  drawGrid(LEVEL_STATE.grid, progress,
            LEVEL_STATE.guyAt, LEVEL_STATE.goalAt);
 
-  if (LEVEL_STATE.progress === 1) {
+  if (progress === 1) {
     drawPC(LEVEL_STATE.pc);
   }
 
@@ -518,7 +548,7 @@ const draw = function (t) {
     !LEVEL_STATE.playActive && !LEVEL_STATE.dead,
     LEVEL_STATE.playActive, LEVEL_STATE.stepActive);
 
-  drawLegend(LEVEL_STATE.limitedLegend, LEVEL_STATE.progress);
+  drawLegend(LEVEL_STATE.limitedLegend, progress);
 
   if (transformAnim) {
     if (move.isAnimDone(transformAnim, t)) {
@@ -561,7 +591,10 @@ const handleClick = function (e) {
     if (!LEVEL_STATE.stepActive) {
       // kickoff
       LEVEL_STATE.stepActive = true;
-      LEVEL_STATE.progress = 1;
+      if (LEVEL_STATE.progress !== 1) {
+        LEVEL_STATE.progressAnim.push({t: 0, x: 0}, {t: GRID_ANIM_MS, x: 1});
+        LEVEL_STATE.progress = 1;
+      }
       // check for crushed immediately
       if (LEVEL_STATE.grid[LEVEL_STATE.guyAt.j][LEVEL_STATE.guyAt.i] === 1) {
         LEVEL_STATE.dead = true;
@@ -676,6 +709,10 @@ const initLevel = function (level) {
   state.limitedLegend = level.limitedLegend;
   state.noEdit = level.noEdit;
   state.msg = level.msg;
+  state.progress = 0;
+
+  state.progressAnim = [];
+  state.guyAnim = [];
 
   resetLevel(state);
 
@@ -688,7 +725,10 @@ const resetLevel = function (state) {
   state.pc = 0;
   state.playActive = false;
   state.stepActive = false;
-  state.progress = 0;
+  if (state.progress !== 0) {
+    state.progressAnim.push({t: 0, x: 1}, {t: GRID_ANIM_MS, x: 0});
+    state.progress = 0;
+  }
 
   if (state.msg) {
     showMessage(state.msg, false);
@@ -766,6 +806,7 @@ const runCommand = function () {
   }
 
   if (!ls.dead && checkDest(dest)) {
+    // TODO: animate
     ls.guyAt = dest;
 
     if (ls.guyAt.i === ls.goalAt.i && ls.guyAt.j === ls.goalAt.j) {
