@@ -32,9 +32,6 @@ const PORTRAIT_CONTROLS_X = 100;
 const PORTRAIT_CONTROLS_Y = 20;
 let CONTROLS_X = 10;
 let CONTROLS_Y = 10;
-let STEP_PRESSED = false;
-let PLAY_PRESSED = false;
-let SHOW_PLAY = true;
 
 const CONTROL_H = 80;
 const CONTROL_W = 48;
@@ -274,7 +271,15 @@ const drawGoal = function ({i, j}) {
                GRID_W-1, GRID_H-1);
 };
 
-const drawPC = function ({i, j}) {
+const drawPC = function (pc) {
+  const j = Math.floor(pc / 4);
+  const i = (pc - j * 4) * 2;
+  ctx.strokeStyle = 'red';
+  ctx.lineWidth = 2;
+
+  ctx.strokeRect(GRID_X + GRID_W * i, GRID_Y + GRID_H * j,
+                 GRID_W * 2 - 1, GRID_H - 1);
+
 };
 
 const drawControls = function (showPlay, playPressed, stepPressed) {
@@ -460,19 +465,24 @@ const draw = function (t) {
   ctx.fillStyle = BG_COLOR;
   ctx.fillRect(0, 0, cnv.width, cnv.height);
 
-  const progress = 0;
 //    transformAnim ? move.animAt(transformAnim, t) : (toggle ? 0 : 1);
 
-  drawBGGrid(LEVEL_STATE.grid, progress);
+  drawBGGrid(LEVEL_STATE.grid, LEVEL_STATE.progress);
 
   drawGoal(LEVEL_STATE.goalAt);
   drawGuy(LEVEL_STATE.guyAt);
 
-  drawGrid(LEVEL_STATE.grid, progress, LEVEL_STATE.guyAt, LEVEL_STATE.goalAt);
+  drawGrid(LEVEL_STATE.grid, LEVEL_STATE.progress,
+           LEVEL_STATE.guyAt, LEVEL_STATE.goalAt);
 
-  drawControls(!LEVEL_STATE.noPlay, PLAY_PRESSED, STEP_PRESSED);
+  if (LEVEL_STATE.progress === 1) {
+    drawPC(LEVEL_STATE.pc);
+  }
 
-  drawLegend(LEVEL_STATE.limitedLegend, progress);
+  drawControls(!LEVEL_STATE.noPlay,
+    LEVEL_STATE.playActive, LEVEL_STATE.stepActive);
+
+  drawLegend(LEVEL_STATE.limitedLegend, LEVEL_STATE.progress);
 
   if (transformAnim) {
     if (move.isAnimDone(transformAnim, t)) {
@@ -496,21 +506,29 @@ const clickHandler = function (e) {
   e.stopPropagation();
   const x = e.pageX/RESIZE_SCALE;
   const y = e.pageY/RESIZE_SCALE;
-  if (!LEVEL_STATE.noEdit &&
+  if (!LEVEL_STATE.noEdit && !LEVEL_STATE.stepActive &&
       x >= GRID_X && x < GRID_X + GRID_W * GRID_COLS &&
       y >= GRID_Y && y < GRID_Y * GRID_H * GRID_ROWS) {
     toggleBit(LEVEL_STATE,
           {i: Math.floor((x - GRID_X) / GRID_W),
            j: Math.floor((y - GRID_Y) / GRID_H)});
-  } else if (x >= CONTROLS_X && x < CONTROLS_X + CONTROL_W &&
+  } else if (!LEVEL_STATE.playActive &&
+             x >= CONTROLS_X && x < CONTROLS_X + CONTROL_W &&
              y >= CONTROLS_Y && y < CONTROLS_Y + CONTROL_H) {
-    STEP_PRESSED = !STEP_PRESSED;
-  } else if (SHOW_PLAY &&
+    if (!LEVEL_STATE.stepActive) {
+      // kickoff
+      LEVEL_STATE.stepActive = true;
+      LEVEL_STATE.progress = 1;
+    } else {
+      // continue
+      runCommand();
+    }
+  } else if (!LEVEL_STATE.noPlay &&
+             !LEVEL_STATE.playActive && !LEVEL_STATE.stepActive &&
              y >= CONTROLS_Y + CONTROL_H + CONTROL_PAD &&
              y < CONTROLS_Y + 2 * CONTROL_H + CONTROL_PAD &&
              x >= CONTROLS_X && x < CONTROLS_X + CONTROL_W) {
-    PLAY_PRESSED = !PLAY_PRESSED;
-    flipToggle(performance.now());
+    LEVEL_STATE.playActive = true;
   }
 
   requestDraw();
@@ -598,6 +616,9 @@ const resetLevel = function (state) {
   // doesn't touch grid
   state.guyAt = {i: state.guyAtInit.i, j: state.guyAtInit.j};
   state.pc = 0;
+  state.playActive = false;
+  state.stepActive = false;
+  state.progress = 0;
 };
 
 const showMessage = function (msg) {
@@ -611,6 +632,44 @@ const hideMessage = function () {
   div.style.visibility = 'hidden';
 };
 
+const checkDest = function ({i, j}) {
+  return i >= 0 && j >= 0 && i < GRID_COLS && j < GRID_ROWS &&
+         LEVEL_STATE.grid[j][i] !== 1;
+}
+
+const runCommand = function () {
+  const pc = LEVEL_STATE.pc;
+  const pcj = Math.floor(pc /4);
+  const pci = (pc - pcj * 4) * 2;
+
+  const b1 = LEVEL_STATE.grid[pcj][pci];
+  const b0 = LEVEL_STATE.grid[pcj][pci+1];
+  const guyAt = LEVEL_STATE.guyAt;
+  let dest;
+
+  if (b1 === 0 && b0 === 0) {
+    // left
+    dest = {i: guyAt.i - 1, j: guyAt.j};
+  } else if (b1 === 0 && b0 === 1) {
+    // right
+    dest = {i: guyAt.i + 1, j: guyAt.j};
+  } else if (b1 === 1 && b0 === 0) {
+    // up
+    dest = {i: guyAt.i, j: guyAt.j - 1};
+  } else if (b1 === 1 && b0 === 1) {
+    // down
+    dest = {i: guyAt.i, j: guyAt.j + 1};
+  }
+
+  if (checkDest(dest)) {
+    LEVEL_STATE.guyAt = dest;
+
+    LEVEL_STATE.pc  = pc + 1;
+    if (LEVEL_STATE.pc >= 32) {
+      LEVEL_STATE.pc = 0;
+    }
+  }
+};
 
 // main code starts here
 
@@ -632,7 +691,7 @@ let transformAnim;
 
 setSize();
 
-let curLevel = 1;
+let curLevel = 2;
 if (LEVELS[curLevel].msg) {
   showMessage(LEVELS[curLevel].msg);
 } else {
