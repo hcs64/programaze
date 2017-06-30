@@ -488,6 +488,9 @@ const flipToggle = function (t) {
 
 const draw = function (t) {
   DRAW_IN_FLIGHT = false;
+  if (!LEVEL_STATE) {
+    return;
+  }
 
   ctx.clearRect(0, 0, cnv.width, cnv.height);
   ctx.fillStyle = BG_COLOR;
@@ -538,7 +541,7 @@ const handleClick = function (e) {
 
   if (!LEVEL_STATE || !LEVEL_STATE.guyAt) {
     hideMessage();
-    // TODO: advance callback
+    winLevel();
     return;
   }
 
@@ -576,6 +579,7 @@ const handleClick = function (e) {
 };
 
 
+let CUR_LEVEL = 6;
 const LEVELS = [
   // 0
   { msg: 'Welcome to PrograMaze!<br><br>' +
@@ -609,8 +613,8 @@ const LEVELS = [
   // 3
   { msg: 'Click Play (<canvas id="playIcon"></canvas>) '+
          'to run the program automatically.',
-    guyAt: {i: 6, j: 0},
-    goalAt: {i: 1, j: 3},
+    guyAt: {i: 5, j: 0},
+    goalAt: {i: 0, j: 3},
   },
   // 4
   { guyAt: {i: 5, j: 7},
@@ -664,6 +668,8 @@ const initLevel = function (level) {
   state.noEdit = level.noEdit;
   state.msg = level.msg;
 
+  resetLevel(state);
+
   return state;
 };
 
@@ -689,6 +695,7 @@ const showMessage = function (msg, fullscreen) {
     div.style.top = '0';
     div.style.bottom = '';
     div.style['padding-top'] = '100px';
+    ctx.clearRect(0, 0, cnv.width, cnv.height);
   } else {
     div.style.top = '';
     div.style.bottom = '';
@@ -749,12 +756,41 @@ const runCommand = function () {
   if (checkDest(dest)) {
     LEVEL_STATE.guyAt = dest;
 
-    LEVEL_STATE.pc  = pc + 1;
-    if (LEVEL_STATE.pc >= 32) {
-      LEVEL_STATE.pc = 0;
+    if (LEVEL_STATE.guyAt.i === LEVEL_STATE.goalAt.i &&
+        LEVEL_STATE.guyAt.j === LEVEL_STATE.goalAt.j) {
+      winLevel();
+    } else {
+      LEVEL_STATE.pc  = pc + 1;
+      if (LEVEL_STATE.pc >= 32) {
+        LEVEL_STATE.pc = 0;
+      }
     }
   } else {
     showMessage(RESET_MESSAGE, false);
+  }
+};
+
+const startLevel = function () {
+  const level = LEVELS[CUR_LEVEL];
+  if (level.msg) {
+    showMessage(level.msg, !level.guyAt);
+  } else {
+    hideMessage();
+  }
+
+  if (level.guyAt) {
+    LEVEL_STATE = initLevel(level);
+    requestDraw();
+  } else {
+    LEVEL_STATE = null;
+  }
+};
+
+
+const winLevel = function () {
+  if (CUR_LEVEL < LEVELS.length - 1) {
+    CUR_LEVEL += 1;
+    startLevel();
   }
 };
 
@@ -778,18 +814,7 @@ let transformAnim;
 
 setSize();
 
-let curLevel = 2;
-if (LEVELS[curLevel].msg) {
-  showMessage(LEVELS[curLevel].msg, !LEVELS[curLevel].guyAt);
-} else {
-  hideMessage();
-}
-
-if (LEVELS[curLevel].guyAt) {
-  LEVEL_STATE = initLevel(LEVELS[curLevel]);
-  resetLevel(LEVEL_STATE);
-  requestDraw();
-}
+startLevel();
 
 window.addEventListener('click', handleClick);
 window.addEventListener('resize', handleResize);
