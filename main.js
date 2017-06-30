@@ -4,11 +4,42 @@
 const GUY_COLOR = 'orange';
 const GOAL_COLOR = 'blue';
 const BG_COLOR = 'black';
+const CONTROL_COLOR = 'white';
 
-let GRID_X = 100;
-let GRID_Y = 100;
-const GRID_W = 40;
-const GRID_H = 40;
+let RESIZE_SCALE = 1;
+let LANDSCAPE = true;
+
+const PAD_X = 10;
+const PAD_Y = 10;
+
+const LANDSCAPE_CONTROLS_X = 20;
+const LANDSCAPE_CONTROLS_Y = 20;
+const PORTRAIT_CONTROLS_X = 20;
+const PORTRAIT_CONTROLS_Y = 20;
+let CONTROLS_X = 10;
+let CONTROLS_Y = 10;
+let STEP_PRESSED = false;
+let PLAY_PRESSED = false;
+let SHOW_PLAY = true;
+
+const CONTROL_H = 80;
+const CONTROL_W = 48;
+const CONTROL_PAD = 25;
+
+const LANDSCAPE_GRID_X = 200;
+const LANDSCAPE_GRID_Y = 10;
+const PORTRAIT_GRID_X = 10;
+const PORTRAIT_GRID_Y = 200;
+let GRID_X = 10;
+let GRID_Y = 10;
+
+let TEXT_X = 10;
+let TEXT_Y = 10;
+
+const GRID_ROWS = 8;
+const GRID_COLS = 8;
+const GRID_W = 55;
+const GRID_H = 55;
 const ZERO_W = GRID_W * .6;
 const ZERO_H = GRID_H * .6;
 const ONE_W = GRID_W * .2;
@@ -17,20 +48,77 @@ const ZERO_INNER_W = GRID_W * .3;
 const ZERO_INNER_H = GRID_H * .3;
 const PAIR_OFFSET = 4;
 
+const LANDSCAPE_LEGEND_X = 2;
+const LANDSCAPE_LEGEND_Y = LANDSCAPE_CONTROLS_Y + (CONTROL_PAD + CONTROL_H) * 2;
+const PORTRAIT_LEGEND_X = GRID_X + GRID_W * 3;
+const PORTRAIT_LEGEND_Y = PORTRAIT_CONTROLS_Y;
+let LEGEND_X = 10;
+let LEGEND_Y = 10;
+
+const EQ_W = GRID_W * .8;
+
 const cnv = document.getElementById('cnv');
-cnv.width = cnv.offsetWidth;
-cnv.height = cnv.offsetHeight;
-let ctx = cnv.getContext('2d');
+const ctx = cnv.getContext('2d');
 
+let DPR = 1;
 if (window.devicePixelRatio) {
-  const dpr = window.devicePixelRatio;
-  const width = cnv.width;
-  const height = cnv.height
+  DPR = window.devicePixelRatio;
 
-  cnv.width = width * dpr;
-  cnv.height = height * dpr;
-  ctx.scale(dpr, dpr);
 }
+
+
+const setSize = function () {
+  LANDSCAPE = window.innerWidth > window.innerHeight;
+  if (LANDSCAPE) {
+    CONTROLS_X = LANDSCAPE_CONTROLS_X;
+    CONTROLS_Y = LANDSCAPE_CONTROLS_Y;
+    LEGEND_X = LANDSCAPE_LEGEND_X;
+    LEGEND_Y = LANDSCAPE_LEGEND_Y;
+    GRID_X = LANDSCAPE_GRID_X;
+    GRID_Y = LANDSCAPE_GRID_Y;
+  } else {
+    CONTROLS_X = PORTRAIT_CONTROLS_X;
+    CONTROLS_Y = PORTRAIT_CONTROLS_Y;
+    LEGEND_X = PORTRAIT_LEGEND_X;
+    LEGEND_Y = PORTRAIT_LEGEND_Y;
+    GRID_X = PORTRAIT_GRID_X;
+    GRID_Y = PORTRAIT_GRID_Y;
+  }
+  const desiredWidth = GRID_X + GRID_W * GRID_COLS + PAD_X;
+  const desiredHeight = GRID_Y + GRID_H * GRID_ROWS + PAD_Y;
+
+  let width = Math.min(window.innerWidth, desiredWidth);
+  let height = Math.min(window.innerHeight, desiredHeight);
+
+  let widthScale = 1;
+  let heightScale = 1;
+  if (width < desiredWidth) {
+    widthScale = width / desiredWidth;
+  }
+  if (height < desiredHeight) {
+    heightScale = height / desiredHeight;
+  }
+
+  cnv.width = desiredWidth * DPR;
+  cnv.height = desiredHeight * DPR;
+
+  RESIZE_SCALE = 1;
+  if (widthScale < heightScale) {
+    height = Math.floor(desiredHeight * widthScale);
+    RESIZE_SCALE = widthScale;
+  } else if (heightScale < widthScale) {
+    width = Math.floor(desiredWidth * heightScale);
+    RESIZE_SCALE = heightScale;
+  }
+
+  cnv.style.width = width + 'px';
+  cnv.style.height = height + 'px';
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(DPR, DPR);
+}
+
+setSize();
 
 const move = MOVE();
 
@@ -52,95 +140,118 @@ const lerp = function (x0, x1, t) {
   return x0 + (x1 - x0) * t;
 };
 
+const draw0 = function ({x, y}, offset, holeColor, t) {
+  if (t >= 1) {
+    return;
+  }
+  {
+    const x0 = x + (GRID_W - ZERO_W)/2 + offset;
+    const y0 = y + (GRID_H - ZERO_H)/2;
+    const w0 = ZERO_W;
+    const h0 = ZERO_H;
+
+    const x1 = x + GRID_W/2;
+    const y1 = y + GRID_H/2;
+    const w1 = 0;
+    const h1 = 0;
+
+    const xN = lerp(x0, x1, t);
+    const yN = lerp(y0, y1, t);
+    const wN = lerp(w0, w1, t);
+    const hN = lerp(h0, h1, t);
+    ctx.fillStyle = 'white';
+    ctx.fillRect(xN, yN, wN, hN)
+  }
+  {
+    const x0 = x + (GRID_W - ZERO_INNER_W)/2 + offset;
+    const y0 = y + (GRID_H - ZERO_INNER_H)/2;
+    const w0 = ZERO_INNER_W;
+    const h0 = ZERO_INNER_H;
+
+    const x1 = x + GRID_W/2;
+    const y1 = y + GRID_H/2;
+    const w1 = 0;
+    const h1 = 0;
+
+    const xN = lerp(x0, x1, t);
+    const yN = lerp(y0, y1, t);
+    const wN = lerp(w0, w1, t);
+    const hN = lerp(h0, h1, t);
+
+    ctx.fillStyle = holeColor;
+    ctx.fillRect(xN, yN, wN, hN);
+  }
+};
+
+const draw1 = function ({x, y}, offset, t) {
+  const x0 = x + (GRID_W - ONE_W)/2 + offset;
+  const y0 = y + (GRID_H - ONE_H)/2;
+  const w0 = ONE_W;
+  const h0 = ONE_H;
+
+  const x1 = x;
+  const y1 = y;
+  const w1 = GRID_W;
+  const h1 = GRID_H;
+
+  const xN = lerp(x0, x1, t);
+  const yN = lerp(y0, y1, t);
+  const wN = lerp(w0, w1, t);
+  const hN = lerp(h0, h1, t);
+
+  const vN = Math.floor(lerp(255, 128, t));
+  ctx.fillStyle = `rgb(${vN},${vN},${vN})`;
+  ctx.fillRect(xN, yN, wN, hN);
+
+  if (t > 0) {
+    const v = Math.floor(lerp(255, 64, t));
+    ctx.strokeStyle = `rgb(${v},${v},${v})`;
+
+    ctx.strokeRect(xN - .5, yN - .5, wN, hN);
+  }
+};
+
+const drawEq = function ({x, y}) {
+  ctx.fillStyle = 'white';
+  ctx.fillRect(x + GRID_W / 5, y + GRID_H * 3 / 12, GRID_W / 2, GRID_W / 6);
+  ctx.fillRect(x + GRID_W / 5, y + GRID_H * 7 / 12, GRID_W / 2, GRID_W / 6);
+};
 
 const drawGrid = function (grid, t, guyAt, goalAt) {
-  for (let j = 0; j < grid.length; j ++) {
-    for (let i = 0; i < grid[j].length; i ++) {
+  ctx.lineWidth = 1;
+  for (let j = 0; j < GRID_ROWS; j ++) {
+    for (let i = 0; i < GRID_COLS; i ++) {
       const x = GRID_X + i * GRID_W;
       const y = GRID_Y + j * GRID_H;
       const offset = (i % 2) === 0 ? PAIR_OFFSET : -PAIR_OFFSET;
 
-      if (grid[j][i] === 1) {
-        const x0 = x + (GRID_W - ONE_W)/2 + offset;
-        const y0 = y + (GRID_H - ONE_H)/2;
-        const w0 = ONE_W;
-        const h0 = ONE_H;
-
-        const x1 = x;
-        const y1 = y;
-        const w1 = GRID_W;
-        const h1 = GRID_H;
-
-        const xN = lerp(x0, x1, t);
-        const yN = lerp(y0, y1, t);
-        const wN = lerp(w0, w1, t);
-        const hN = lerp(h0, h1, t);
-
-        const vN = Math.floor(lerp(255, 128, t));
-        ctx.fillStyle = `rgb(${vN},${vN},${vN})`;
-        ctx.fillRect(xN, yN, wN, hN);
-
-        if (t > 0) {
-          const v = Math.floor(lerp(255, 64, t));
-          ctx.strokeStyle = `rgb(${v},${v},${v})`;
-
-          ctx.strokeRect(xN - .5, yN - .5, wN, hN);
-        }
+      let holeColor;
+      if (i === guyAt.i && j === guyAt.j) {
+        holeColor = GUY_COLOR;
+      } else if (i === goalAt.i && j === goalAt.j) {
+        holeColor = GOAL_COLOR;
       } else {
-        if (t < 1) {
-          {
-            const x0 = x + (GRID_W - ZERO_W)/2 + offset;
-            const y0 = y + (GRID_H - ZERO_H)/2;
-            const w0 = ZERO_W;
-            const h0 = ZERO_H;
+        holeColor = BG_COLOR;
+      }
 
-            const x1 = x + GRID_W/2;
-            const y1 = y + GRID_H/2;
-            const w1 = 0;
-            const h1 = 0;
-
-            const xN = lerp(x0, x1, t);
-            const yN = lerp(y0, y1, t);
-            const wN = lerp(w0, w1, t);
-            const hN = lerp(h0, h1, t);
-            ctx.fillStyle = 'white';
-            ctx.fillRect(xN, yN, wN, hN)
-          }
-          {
-            const x0 = x + (GRID_W - ZERO_INNER_W)/2 + offset;
-            const y0 = y + (GRID_H - ZERO_INNER_H)/2;
-            const w0 = ZERO_INNER_W;
-            const h0 = ZERO_INNER_H;
-
-            const x1 = x + GRID_W/2;
-            const y1 = y + GRID_H/2;
-            const w1 = 0;
-            const h1 = 0;
-
-            const xN = lerp(x0, x1, t);
-            const yN = lerp(y0, y1, t);
-            const wN = lerp(w0, w1, t);
-            const hN = lerp(h0, h1, t);
-
-            if (i === guyAt.x && j === guyAt.y) {
-              ctx.fillStyle = GUY_COLOR;
-            } else if (i === goalAt.x && j === goalAt.y) {
-              ctx.fillStyle = GOAL_COLOR;
-            }  else {
-              ctx.fillStyle = BG_COLOR;
-            }
-            ctx.fillRect(xN, yN, wN, hN);
-          }
-        }
+      if (grid[j][i] === 1) {
+        draw1({x, y}, offset, t);
+      } else {
+        draw0({x, y}, offset, holeColor, t);
       } // end else (0)
     } // end i loop
   } // end j loop
+
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = 'grey';
+  ctx.strokeRect(GRID_X, GRID_Y, GRID_W * GRID_COLS, GRID_H * GRID_ROWS);
 };
 
 const drawBGGrid = function (grid, t) {
   if (t === 0) {
     return;
   }
+  ctx.lineWidth = 1;
   const vN = Math.floor(lerp(0, 64, t));
   ctx.strokeStyle = `rgb(${vN},${vN},${vN})`;
 
@@ -155,19 +266,10 @@ const drawBGGrid = function (grid, t) {
   }
 };
 
-const drawGuy = function ({x, y}) {
+const drawGuy = function ({i, j}) {
   ctx.fillStyle = GUY_COLOR;
-  ctx.fillRect(GRID_X + GRID_W * x, GRID_Y + GRID_H * y,
+  ctx.fillRect(GRID_X + GRID_W * i, GRID_Y + GRID_H * j,
                GRID_W-1, GRID_H-1);
-};
-
-const drawGoal = function ({x, y}) {
-  ctx.fillStyle = GOAL_COLOR;
-  ctx.fillRect(GRID_X + GRID_W * x, GRID_Y + GRID_H * y,
-               GRID_W-1, GRID_H-1);
-};
-
-const drawPC = function ({x, y}) {
   /*
   const size = 20;
   const s = move.animAt(stretchAnim, t);
@@ -188,58 +290,261 @@ const drawPC = function ({x, y}) {
   */
 };
 
-const drawControls = function (x, y, showPlay, playPressed, pausePressed) {
+const drawGoal = function ({i, j}) {
+  ctx.fillStyle = GOAL_COLOR;
+  ctx.fillRect(GRID_X + GRID_W * i, GRID_Y + GRID_H * j,
+               GRID_W-1, GRID_H-1);
+};
+
+const drawPC = function ({i, j}) {
+};
+
+const drawControls = function (showPlay, playPressed, stepPressed) {
+  ctx.fillStyle = CONTROL_COLOR;
+
+  let x = CONTROLS_X;
+  let y = CONTROLS_Y;
+  // step button
+  ctx.beginPath();
+  // triangle start
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + CONTROL_W * 0.75, y + CONTROL_H * .5);
+  // bar
+  ctx.lineTo(x + CONTROL_W * 0.75, y);
+  ctx.lineTo(x + CONTROL_W, y);
+  ctx.lineTo(x + CONTROL_W, y + CONTROL_H);
+  ctx.lineTo(x + CONTROL_W * 0.75, y + CONTROL_H);
+  // triangle end
+  ctx.lineTo(x + CONTROL_W * 0.75, y + CONTROL_H * 0.5);
+  ctx.lineTo(x, y + CONTROL_H);
+  ctx.closePath();
+  ctx.fill();
+
+  if (stepPressed) {
+    ctx.strokeStyle = 'blue';
+    ctx.lineWidth = 5;
+    ctx.stroke();
+  }
+
+
+  if (LANDSCAPE) {
+    y += CONTROL_H + CONTROL_PAD;
+  } else {
+    x += CONTROL_W + CONTROL_PAD;
+  }
+
+  if (showPlay) {
+    // play button
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + CONTROL_W, y + CONTROL_H * 0.5);
+    ctx.lineTo(x, y + CONTROL_H);
+    ctx.closePath();
+    ctx.fill();
+
+    if (playPressed) {
+      ctx.strokeStyle = 'blue';
+      ctx.lineWidth = 5;
+      ctx.stroke();
+    }
+  }
+
+};
+
+const drawLegend = function (t) {
+  const initX = LEGEND_X;
+  const initY = LEGEND_Y;
+  let x = initX;
+  let y = initY;
+
+  ctx.lineWidth = 1;
+  draw0({x, y}, PAIR_OFFSET, BG_COLOR, t);
+  x += GRID_W;
+  draw0({x, y}, -PAIR_OFFSET, BG_COLOR, t);
+  x += GRID_W;
+  drawEq({x, y});
+  x += EQ_W;
+
+  ctx.strokeStyle = 'white';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(x + GRID_W * .35, y + GRID_H * .2);
+  ctx.lineTo(x + GRID_W * .65, y + GRID_H * .5);
+  ctx.lineTo(x + GRID_W * .35, y + GRID_H * .8);
+  ctx.stroke();
+
+  x = initX;
+  y += GRID_H;
+
+  ctx.lineWidth = 1;
+  draw0({x, y}, PAIR_OFFSET, BG_COLOR, t);
+  x += GRID_W;
+  draw1({x, y}, -PAIR_OFFSET, t);
+  x += GRID_W;
+  drawEq({x, y});
+  x += EQ_W;
+
+  ctx.strokeStyle = 'white';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(x + GRID_W * .65, y + GRID_H * .2);
+  ctx.lineTo(x + GRID_W * .35, y + GRID_H * .5);
+  ctx.lineTo(x + GRID_W * .65, y + GRID_H * .8);
+  ctx.stroke();
+
+  if (LANDSCAPE) {
+    x = initX;
+    y += GRID_H;
+  } else {
+    x = GRID_X;
+    y += GRID_H;
+  }
+
+  ctx.lineWidth = 1;
+  draw1({x, y}, PAIR_OFFSET, t);
+  x += GRID_W;
+  draw0({x, y}, -PAIR_OFFSET, BG_COLOR, t);
+  x += GRID_W
+  drawEq({x, y});
+  x += EQ_W;
+
+  ctx.strokeStyle = 'white';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(x + GRID_W * .2, y + GRID_H * .35);
+  ctx.lineTo(x + GRID_W * .5, y + GRID_H * .65);
+  ctx.lineTo(x + GRID_W * .8, y + GRID_H * .35);
+  ctx.stroke();
+
+  if (LANDSCAPE) {
+    x = initX;
+    y += GRID_H;
+  } else {
+    x = GRID_X + GRID_W * 4;
+  }
+
+  ctx.lineWidth = 1;
+  draw1({x, y}, PAIR_OFFSET, t);
+  x += GRID_W;
+  draw1({x, y}, -PAIR_OFFSET, t);
+  x += GRID_W;
+  drawEq({x, y});
+  x += EQ_W;
+
+  ctx.strokeStyle = 'white';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(x + GRID_W * .2, y + GRID_H * .65);
+  ctx.lineTo(x + GRID_W * .5, y + GRID_H * .35);
+  ctx.lineTo(x + GRID_W * .8, y + GRID_H * .65);
+  ctx.stroke();
+
+
+};
+
+let DRAW_IN_FLIGHT = false;
+const requestDraw = function () {
+  if (!DRAW_IN_FLIGHT) {
+    window.requestAnimationFrame(draw);
+    DRAW_IN_FLIGHT = true;
+  }
+};
+
+const click = function ({i, j}) {
+  if (GRID[j][i] === 1) {
+    GRID[j][i] = 0;
+  } else {
+    GRID[j][i] = 1;
+  }
+  requestDraw();
 };
 
 let toggle = true;
-const draw = function (t) {
-  if (typeof transformAnim !== 'object') {
+const flipToggle = function (t) {
+  if (!transformAnim) {
     //stretchAnim = move.setupAnim(stretch, t, 0);
     //crawlAnim = move.setupAnim(crawl, t, 0);
+    toggle = !toggle;
     if (toggle) {
       transformAnim = move.setupAnim(transform10, t, 0);
     } else {
       transformAnim = move.setupAnim(transform01, t, 0);
     }
-    toggle = !toggle;
   }
+  requestDraw();
+};
+
+const GRID = [[1,1,1,1,1,1,1,1],
+              [1,1,1,0,1,1,1,1],
+              [1,0,0,0,0,1,1,1],
+              [1,1,1,0,1,1,1,1],
+              [1,1,1,1,1,1,1,1],
+              [0,0,0,0,0,0,0,0],
+              [0,0,1,0,1,0,0,0],
+              [0,0,0,0,0,0,0,0]];
+
+
+const draw = function (t) {
+  DRAW_IN_FLIGHT = false;
 
   ctx.clearRect(0, 0, cnv.width, cnv.height);
   ctx.fillStyle = BG_COLOR;
   ctx.fillRect(0, 0, cnv.width, cnv.height);
 
-  const progress = move.animAt(transformAnim, t);
+  const progress =
+    transformAnim ? move.animAt(transformAnim, t) : (toggle ? 0 : 1);
 
-  const grid = [[1,1,1,1,1,1,1,1],
-                [1,1,1,0,1,1,1,1],
-                [1,0,0,0,0,1,1,1],
-                [1,1,1,0,1,1,1,1],
-                [1,1,1,1,1,1,1,1],
-                [0,0,0,0,0,0,0,0],
-                [0,0,1,0,1,0,0,0],
-                [0,0,0,0,0,0,0,0]];
+  drawBGGrid(GRID, progress);
 
-  drawBGGrid(grid, progress);
+  drawGoal({i:3, j:2});
+  drawGuy({i:2.5, j:2});
 
-  drawGoal({x:3, y:2});
-  drawGuy({x:2.5, y:2});
+  drawGrid(GRID, progress, {i:2,j:2}, {i:3,j:2});
 
-  drawGrid(grid, progress, {x:2,y:2}, {x:3,y:2});
+  drawControls(SHOW_PLAY, PLAY_PRESSED, STEP_PRESSED);
 
-  if (move.isAnimDone(transformAnim, t)) {
+  drawLegend(progress);
+
+  if (transformAnim && move.isAnimDone(transformAnim, t)) {
     //stretchAnim = undefined;
     //crawlAnim = undefined;
     //xpos += size * 1.2;
     //window.requestAnimationFrame(draw);
     transformAnim = undefined;
   } else {
-    window.requestAnimationFrame(draw);
+    requestDraw();
   }
 };
 
-window.requestAnimationFrame(draw);
-window.addEventListener('click', function () {
-  window.requestAnimationFrame(draw);
+requestDraw();
+
+cnv.addEventListener('click', function (e) {
+  const x = e.pageX/RESIZE_SCALE;
+  const y = e.pageY/RESIZE_SCALE;
+  if (x >= GRID_X && x < GRID_X + GRID_W * GRID_COLS &&
+      y >= GRID_Y && y < GRID_Y * GRID_H * GRID_ROWS) {
+    click({i: Math.floor((x - GRID_X) / GRID_W),
+           j: Math.floor((y - GRID_Y) / GRID_H)});
+  } else if (x >= CONTROLS_X && x < CONTROLS_X + CONTROL_W &&
+             y >= CONTROLS_Y && y < CONTROLS_Y + CONTROL_H) {
+    STEP_PRESSED = !STEP_PRESSED;
+  } else if (SHOW_PLAY &&
+    ((!LANDSCAPE && x >= CONTROLS_X + CONTROL_W + CONTROL_PAD &&
+                    x < CONTROLS_X + 2 * CONTROL_W + CONTROL_PAD &&
+                    y >= CONTROLS_Y && y < CONTROLS_Y + CONTROL_H) ||
+     (LANDSCAPE && y >= CONTROLS_Y + CONTROL_H + CONTROL_PAD &&
+                   y < CONTROLS_Y + 2 * CONTROL_H + CONTROL_PAD &&
+                   x >= CONTROLS_X && x < CONTROLS_X + CONTROL_W))) {
+    PLAY_PRESSED = !PLAY_PRESSED;
+    flipToggle(performance.now());
+  }
+
+  requestDraw();
+});
+
+window.addEventListener('resize', function (e) {
+  setSize();
+  requestDraw();
 });
 
 })();
