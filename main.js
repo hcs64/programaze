@@ -48,9 +48,8 @@ let GRID_X = 10;
 let GRID_Y = 10;
 
 const GRID_ANIM_MS = 150;
-
-let TEXT_X = 10;
-let TEXT_Y = 10;
+const MOVE_ANIM_MS = 150;
+const GUY_SCALE = 0.8;
 
 let LEVEL_STATE = null;
 
@@ -246,28 +245,12 @@ const drawBGGrid = function (grid, t) {
   }
 };
 
-const drawGuy = function ({i, j}) {
+const drawGuy = function ({i, j}, t, stretchX) {
+  const scale = lerp(1, GUY_SCALE, t);
   ctx.fillStyle = GUY_COLOR;
-  ctx.fillRect(GRID_X + GRID_W * i, GRID_Y + GRID_H * j,
-               GRID_W-1, GRID_H-1);
-  /*
-  const size = 20;
-  const s = move.animAt(stretchAnim, t);
-  const w = s * size;
-  const h = size * size / w;
-  const x = xpos + size * move.animAt(crawlAnim, t);
-  */
-  /*
-  ctx.strokeStyle = 'black';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(x, 100 + size / 2);
-  ctx.lineTo(x + w/2, 100 + size / 2 - h/2);
-  ctx.lineTo(x + w, 100 + size/2);
-  ctx.lineTo(x + w/2, 100 + size / 2 + h/2);
-  ctx.closePath();
-  ctx.stroke();
-  */
+  ctx.fillRect(GRID_X + GRID_W * i + GRID_W * (1 - scale) / 2 * stretchX,
+               GRID_Y + GRID_H * j + GRID_H * (1 - scale) / 2 / stretchX,
+               GRID_W * scale-1, GRID_H*scale-1);
 };
 
 const drawGoal = function ({i, j}) {
@@ -491,6 +474,24 @@ const flipToggle = function (t) {
 };
 */
 
+const animateMove = function (anim, from, to) {
+  anim.push(
+    {t: 0, stretch: 1, crawlI: from.i - to.i, crawlJ: from.j - to.j},
+    {t: MOVE_ANIM_MS, stretch: 1, crawlI: 0, crawlJ: 0});
+};
+
+const animateBump = function (anim, from, to) {
+  // how far he gets before the bump
+  const amt = (1 - GUY_SCALE) / 2;
+  const dirI = to.i - from.i;
+  const dirJ = to.j - from.j;
+  anim.push(
+    {t: 0, stretch: 1, crawlI: 0, crawlJ: 0},
+    {t: MOVE_ANIM_MS * amt, stretch: 1, crawlI: dirI * amt, crawlJ: dirJ * amt},
+    {t: MOVE_ANIM_MS * amt * 5, stretch: 1, crawlI: 0, crawlJ: 0});
+
+};
+
 const draw = function (t) {
   DRAW_IN_FLIGHT = false;
   if (!LEVEL_STATE) {
@@ -522,7 +523,6 @@ const draw = function (t) {
   } else if (curProgressFrame && prevProgressFrame) {
     progress = lerp(prevProgressFrame.x, curProgressFrame.x,
       (t - prevProgressFrame.t) / (curProgressFrame.t - prevProgressFrame.t));
-    
   }
 
   if (LEVEL_STATE.progressAnim.length > 0) {
@@ -531,10 +531,51 @@ const draw = function (t) {
     }
     requestDraw();
   }
+
   drawBGGrid(LEVEL_STATE.grid, progress);
 
   drawGoal(LEVEL_STATE.goalAt);
-  drawGuy(LEVEL_STATE.guyAt);
+
+  let stretchX = 1;
+  let crawlI = 0;
+  let crawlJ = 0;
+  let curAnimFrame = LEVEL_STATE.guyAnim[0], prevAnimFrame;
+
+  LEVEL_STATE.guyAnim.forEach(function (f) {
+    if (!f.timeOffset) {
+      f.t += t;
+      f.timeOffset = true;
+    }
+  });
+
+while (LEVEL_STATE.guyAnim.length > 0 && curAnimFrame.t <= t) {
+    prevAnimFrame = LEVEL_STATE.guyAnim.shift();
+    curAnimFrame = LEVEL_STATE.guyAnim[0];
+  }
+  if (curAnimFrame && LEVEL_STATE.guyAnim.length === 0) {
+    // past the last keyframe, just use it directly
+    stretchX = curAnimFrame.stretch;
+    crawlI = curAnimFrame.crawlI;
+    crawlJ = curAnimFrame.crawlJ;
+  } else if (curAnimFrame && prevAnimFrame) {
+    // two keyframes to lerp between
+    const tt = (t - prevAnimFrame.t) / ( curAnimFrame.t - prevAnimFrame.t);
+    stretchX = lerp(prevAnimFrame.stretch, curAnimFrame.stretch, tt);
+    crawlI = lerp(prevAnimFrame.crawlI, curAnimFrame.crawlI, tt);
+    crawlJ = lerp(prevAnimFrame.crawlJ, curAnimFrame.crawlJ, tt);
+  }
+
+  if (LEVEL_STATE.guyAnim.length > 0) {
+    // still animating
+    if (prevAnimFrame) {
+      // restore the previous keyframe to be used again
+      LEVEL_STATE.guyAnim.unshift(prevAnimFrame);
+    }
+    requestDraw();
+  }
+
+  drawGuy({i: LEVEL_STATE.guyAt.i + crawlI,
+           j: LEVEL_STATE.guyAt.j + crawlJ}, progress, stretchX);
 
   drawGrid(LEVEL_STATE.grid, progress,
            LEVEL_STATE.guyAt, LEVEL_STATE.goalAt);
@@ -545,7 +586,7 @@ const draw = function (t) {
 
   drawControls(!LEVEL_STATE.noPlay && !LEVEL_STATE.dead,
     (LEVEL_STATE.playActive || LEVEL_STATE.stepActive),
-    !LEVEL_STATE.playActive && !LEVEL_STATE.dead,
+    !LEVEL_STATE.playActive,
     LEVEL_STATE.playActive, LEVEL_STATE.stepActive);
 
   drawLegend(LEVEL_STATE.limitedLegend, progress);
@@ -766,7 +807,7 @@ const runCommand = function () {
   const pc = LEVEL_STATE.pc;
   const pcj = Math.floor(pc /4);
   const pci = (pc - pcj * 4) * 2;
-  const ls = LEVEL_STATE;
+  let ls = LEVEL_STATE;
 
   const b1 = ls.grid[pcj][pci];
   const b0 = ls.grid[pcj][pci+1];
@@ -788,7 +829,7 @@ const runCommand = function () {
   }
 
   if (!ls.dead && checkDest(dest)) {
-    // TODO: animate
+    animateMove(LEVEL_STATE.guyAnim, ls.guyAt, dest);
     ls.guyAt = dest;
 
     if (ls.guyAt.i === ls.goalAt.i && ls.guyAt.j === ls.goalAt.j) {
@@ -801,8 +842,10 @@ const runCommand = function () {
       }
     }
   } else {
-    ls.dead = true;
+    animateBump(LEVEL_STATE.guyAnim, ls.guyAt, dest);
     showMessage(RESET_MESSAGE, false);
+
+    ls.dead = true;
   }
 };
 
