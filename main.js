@@ -549,29 +549,11 @@ const draw = function (t) {
     LEVEL_STATE.playActive, LEVEL_STATE.stepActive);
 
   drawLegend(LEVEL_STATE.limitedLegend, progress);
-
-  if (transformAnim) {
-    if (move.isAnimDone(transformAnim, t)) {
-      //stretchAnim = undefined;
-      //crawlAnim = undefined;
-      //xpos += size * 1.2;
-      //window.requestAnimationFrame(draw);
-      transformAnim = undefined;
-    } else {
-      requestDraw();
-    }
-  }
 };
 
-const handleClick = function (e) {
-  if (e.button !== 0) {
-    return;
-  }
-
-  e.preventDefault();
-  e.stopPropagation();
-  const x = e.pageX/RESIZE_SCALE;
-  const y = e.pageY/RESIZE_SCALE;
+const handleClick = function ({x: pageX, y: pageY}) {
+  const x = pageX/RESIZE_SCALE;
+  const y = pageY/RESIZE_SCALE;
 
   if (!LEVEL_STATE || !LEVEL_STATE.guyAt) {
     hideMessage();
@@ -850,8 +832,6 @@ const winLevel = function () {
 
 // main code starts here
 
-const move = MOVE();
-
 /*
 const stretch = [{t: 0, x: 1},
                  {t: 150, x: 2.2, f: MOVE.quadin},
@@ -870,7 +850,10 @@ setSize();
 
 startLevel();
 
-window.addEventListener('click', handleClick);
 window.addEventListener('resize', handleResize);
+
+GET_TOUCHY(window, {
+  touchEnd: handleClick
+});
 
 })();
