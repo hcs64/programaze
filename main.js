@@ -6,15 +6,29 @@ const GOAL_COLOR = 'blue';
 const BG_COLOR = 'black';
 const CONTROL_COLOR = 'white';
 
+const GRID_ROWS = 8;
+const GRID_COLS = 8;
+const GRID_W = 55;
+const GRID_H = 55;
+const ZERO_W = GRID_W * .6;
+const ZERO_H = GRID_H * .6;
+const ONE_W = GRID_W * .2;
+const ONE_H = GRID_H * .6;
+const ZERO_INNER_W = GRID_W * .3;
+const ZERO_INNER_H = GRID_H * .3;
+const PAIR_OFFSET = 4;
+
+const EQ_W = GRID_W * .7;
+
 let RESIZE_SCALE = 1;
 let LANDSCAPE = true;
 
 const PAD_X = 10;
 const PAD_Y = 10;
 
-const LANDSCAPE_CONTROLS_X = 20;
+const LANDSCAPE_CONTROLS_X = 70;
 const LANDSCAPE_CONTROLS_Y = 20;
-const PORTRAIT_CONTROLS_X = 20;
+const PORTRAIT_CONTROLS_X = 100;
 const PORTRAIT_CONTROLS_Y = 20;
 let CONTROLS_X = 10;
 let CONTROLS_Y = 10;
@@ -29,33 +43,12 @@ const CONTROL_PAD = 25;
 const LANDSCAPE_GRID_X = 200;
 const LANDSCAPE_GRID_Y = 10;
 const PORTRAIT_GRID_X = 10;
-const PORTRAIT_GRID_Y = 200;
+const PORTRAIT_GRID_Y = 220;
 let GRID_X = 10;
 let GRID_Y = 10;
 
 let TEXT_X = 10;
 let TEXT_Y = 10;
-
-const GRID_ROWS = 8;
-const GRID_COLS = 8;
-const GRID_W = 55;
-const GRID_H = 55;
-const ZERO_W = GRID_W * .6;
-const ZERO_H = GRID_H * .6;
-const ONE_W = GRID_W * .2;
-const ONE_H = GRID_H * .6;
-const ZERO_INNER_W = GRID_W * .3;
-const ZERO_INNER_H = GRID_H * .3;
-const PAIR_OFFSET = 4;
-
-const LANDSCAPE_LEGEND_X = 2;
-const LANDSCAPE_LEGEND_Y = LANDSCAPE_CONTROLS_Y + (CONTROL_PAD + CONTROL_H) * 2;
-const PORTRAIT_LEGEND_X = GRID_X + GRID_W * 3;
-const PORTRAIT_LEGEND_Y = PORTRAIT_CONTROLS_Y;
-let LEGEND_X = 10;
-let LEGEND_Y = 10;
-
-const EQ_W = GRID_W * .8;
 
 const cnv = document.getElementById('cnv');
 const ctx = cnv.getContext('2d');
@@ -72,15 +65,11 @@ const setSize = function () {
   if (LANDSCAPE) {
     CONTROLS_X = LANDSCAPE_CONTROLS_X;
     CONTROLS_Y = LANDSCAPE_CONTROLS_Y;
-    LEGEND_X = LANDSCAPE_LEGEND_X;
-    LEGEND_Y = LANDSCAPE_LEGEND_Y;
     GRID_X = LANDSCAPE_GRID_X;
     GRID_Y = LANDSCAPE_GRID_Y;
   } else {
     CONTROLS_X = PORTRAIT_CONTROLS_X;
     CONTROLS_Y = PORTRAIT_CONTROLS_Y;
-    LEGEND_X = PORTRAIT_LEGEND_X;
-    LEGEND_Y = PORTRAIT_LEGEND_Y;
     GRID_X = PORTRAIT_GRID_X;
     GRID_Y = PORTRAIT_GRID_Y;
   }
@@ -327,11 +316,7 @@ const drawControls = function (showPlay, playPressed, stepPressed) {
   }
 
 
-  if (LANDSCAPE) {
-    y += CONTROL_H + CONTROL_PAD;
-  } else {
-    x += CONTROL_W + CONTROL_PAD;
-  }
+  y += CONTROL_H + CONTROL_PAD;
 
   if (showPlay) {
     // play button
@@ -352,8 +337,17 @@ const drawControls = function (showPlay, playPressed, stepPressed) {
 };
 
 const drawLegend = function (t) {
-  const initX = LEGEND_X;
-  const initY = LEGEND_Y;
+  let initX;
+  let initY;
+  
+  if (LANDSCAPE) {
+    initX = 2 ;
+    initY = LANDSCAPE_CONTROLS_Y + (CONTROL_PAD + CONTROL_H) * 2;
+  } else {
+    initX = GRID_X + GRID_W * 4;
+    initY = -2;
+  }
+
   let x = initX;
   let y = initY;
 
@@ -368,9 +362,9 @@ const drawLegend = function (t) {
   ctx.strokeStyle = 'white';
   ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.moveTo(x + GRID_W * .35, y + GRID_H * .2);
+  ctx.moveTo(x + GRID_W * .35, y + GRID_H * .3);
   ctx.lineTo(x + GRID_W * .65, y + GRID_H * .5);
-  ctx.lineTo(x + GRID_W * .35, y + GRID_H * .8);
+  ctx.lineTo(x + GRID_W * .35, y + GRID_H * .7);
   ctx.stroke();
 
   x = initX;
@@ -387,18 +381,13 @@ const drawLegend = function (t) {
   ctx.strokeStyle = 'white';
   ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.moveTo(x + GRID_W * .65, y + GRID_H * .2);
+  ctx.moveTo(x + GRID_W * .65, y + GRID_H * .3);
   ctx.lineTo(x + GRID_W * .35, y + GRID_H * .5);
-  ctx.lineTo(x + GRID_W * .65, y + GRID_H * .8);
+  ctx.lineTo(x + GRID_W * .65, y + GRID_H * .7);
   ctx.stroke();
 
-  if (LANDSCAPE) {
-    x = initX;
-    y += GRID_H;
-  } else {
-    x = GRID_X;
-    y += GRID_H;
-  }
+  x = initX;
+  y += GRID_H;
 
   ctx.lineWidth = 1;
   draw1({x, y}, PAIR_OFFSET, t);
@@ -411,17 +400,13 @@ const drawLegend = function (t) {
   ctx.strokeStyle = 'white';
   ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.moveTo(x + GRID_W * .2, y + GRID_H * .35);
+  ctx.moveTo(x + GRID_W * .3, y + GRID_H * .35);
   ctx.lineTo(x + GRID_W * .5, y + GRID_H * .65);
-  ctx.lineTo(x + GRID_W * .8, y + GRID_H * .35);
+  ctx.lineTo(x + GRID_W * .7, y + GRID_H * .35);
   ctx.stroke();
 
-  if (LANDSCAPE) {
-    x = initX;
-    y += GRID_H;
-  } else {
-    x = GRID_X + GRID_W * 4;
-  }
+  x = initX;
+  y += GRID_H;
 
   ctx.lineWidth = 1;
   draw1({x, y}, PAIR_OFFSET, t);
@@ -434,9 +419,9 @@ const drawLegend = function (t) {
   ctx.strokeStyle = 'white';
   ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.moveTo(x + GRID_W * .2, y + GRID_H * .65);
+  ctx.moveTo(x + GRID_W * .3, y + GRID_H * .65);
   ctx.lineTo(x + GRID_W * .5, y + GRID_H * .35);
-  ctx.lineTo(x + GRID_W * .8, y + GRID_H * .65);
+  ctx.lineTo(x + GRID_W * .7, y + GRID_H * .65);
   ctx.stroke();
 
 
@@ -474,14 +459,14 @@ const flipToggle = function (t) {
   requestDraw();
 };
 
-const GRID = [[1,1,1,1,1,1,1,1],
+const GRID = [[1,1,0,0,1,1,1,1],
               [1,1,1,0,1,1,1,1],
               [1,0,0,0,0,1,1,1],
               [1,1,1,0,1,1,1,1],
               [1,1,1,1,1,1,1,1],
-              [0,0,0,0,0,0,0,0],
-              [0,0,1,0,1,0,0,0],
-              [0,0,0,0,0,0,0,0]];
+              [1,0,0,0,0,0,0,0],
+              [1,0,1,0,1,0,0,0],
+              [1,0,0,0,0,0,0,0]];
 
 
 const draw = function (t) {
@@ -529,12 +514,9 @@ cnv.addEventListener('click', function (e) {
              y >= CONTROLS_Y && y < CONTROLS_Y + CONTROL_H) {
     STEP_PRESSED = !STEP_PRESSED;
   } else if (SHOW_PLAY &&
-    ((!LANDSCAPE && x >= CONTROLS_X + CONTROL_W + CONTROL_PAD &&
-                    x < CONTROLS_X + 2 * CONTROL_W + CONTROL_PAD &&
-                    y >= CONTROLS_Y && y < CONTROLS_Y + CONTROL_H) ||
-     (LANDSCAPE && y >= CONTROLS_Y + CONTROL_H + CONTROL_PAD &&
-                   y < CONTROLS_Y + 2 * CONTROL_H + CONTROL_PAD &&
-                   x >= CONTROLS_X && x < CONTROLS_X + CONTROL_W))) {
+             y >= CONTROLS_Y + CONTROL_H + CONTROL_PAD &&
+             y < CONTROLS_Y + 2 * CONTROL_H + CONTROL_PAD &&
+             x >= CONTROLS_X && x < CONTROLS_X + CONTROL_W) {
     PLAY_PRESSED = !PLAY_PRESSED;
     flipToggle(performance.now());
   }
