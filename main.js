@@ -386,9 +386,9 @@ const drawLegend = function (limited, t) {
   ctx.strokeStyle = 'white';
   ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.moveTo(x + GRID_W * .35, y + GRID_H * .3);
-  ctx.lineTo(x + GRID_W * .65, y + GRID_H * .5);
-  ctx.lineTo(x + GRID_W * .35, y + GRID_H * .7);
+  ctx.moveTo(x + GRID_W * .65, y + GRID_H * .3);
+  ctx.lineTo(x + GRID_W * .35, y + GRID_H * .5);
+  ctx.lineTo(x + GRID_W * .65, y + GRID_H * .7);
   ctx.stroke();
 
   x = initX;
@@ -407,9 +407,9 @@ const drawLegend = function (limited, t) {
     ctx.strokeStyle = 'white';
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(x + GRID_W * .65, y + GRID_H * .3);
-    ctx.lineTo(x + GRID_W * .35, y + GRID_H * .5);
-    ctx.lineTo(x + GRID_W * .65, y + GRID_H * .7);
+    ctx.moveTo(x + GRID_W * .35, y + GRID_H * .3);
+    ctx.lineTo(x + GRID_W * .65, y + GRID_H * .5);
+    ctx.lineTo(x + GRID_W * .35, y + GRID_H * .7);
     ctx.stroke();
 
     x = initX;
@@ -426,32 +426,30 @@ const drawLegend = function (limited, t) {
     ctx.strokeStyle = 'white';
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(x + GRID_W * .3, y + GRID_H * .35);
-    ctx.lineTo(x + GRID_W * .5, y + GRID_H * .65);
-    ctx.lineTo(x + GRID_W * .7, y + GRID_H * .35);
+    ctx.moveTo(x + GRID_W * .3, y + GRID_H * .65);
+    ctx.lineTo(x + GRID_W * .5, y + GRID_H * .35);
+    ctx.lineTo(x + GRID_W * .7, y + GRID_H * .65);
     ctx.stroke();
 
     x = initX;
     y += GRID_H;
+
+    ctx.lineWidth = 1;
+    draw1({x, y}, PAIR_OFFSET, t);
+    x += GRID_W;
+    draw1({x, y}, -PAIR_OFFSET, t);
+    x += GRID_W;
+    drawEq({x, y});
+    x += EQ_W;
+
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(x + GRID_W * .3, y + GRID_H * .35);
+    ctx.lineTo(x + GRID_W * .5, y + GRID_H * .65);
+    ctx.lineTo(x + GRID_W * .7, y + GRID_H * .35);
+    ctx.stroke();
   }
-
-  ctx.lineWidth = 1;
-  draw1({x, y}, PAIR_OFFSET, t);
-  x += GRID_W;
-  draw1({x, y}, -PAIR_OFFSET, t);
-  x += GRID_W;
-  drawEq({x, y});
-  x += EQ_W;
-
-  ctx.strokeStyle = 'white';
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(x + GRID_W * .3, y + GRID_H * .65);
-  ctx.lineTo(x + GRID_W * .5, y + GRID_H * .35);
-  ctx.lineTo(x + GRID_W * .7, y + GRID_H * .65);
-  ctx.stroke();
-
-
 };
 
 let DRAW_IN_FLIGHT = false;
@@ -588,22 +586,22 @@ const LEVELS = [
   {
     msg: 'Click Step (<canvas id="stepIcon"></canvas>) ' +
          'repeatedly to run the program.',
-    grid: [[0,0,0,0,0,0,0,0],
-           [1,1,0,0,0,0,0,0],
-           [0,0,0,0,0,0,0,0],
-           [0,0,0,0,0,0,0,0],
-           [0,0,0,0,0,0,0,0],
-           [0,0,0,0,0,0,0,0],
-           [0,0,0,0,0,0,0,0],
-           [0,0,0,0,0,0,0,0]],
     guyAt: {i: 6, j: 0},
-    goalAt: {i: 2, j: 1},
+    goalAt: {i: 1, j: 0},
     limitedLegend: true,
     noPlay: true,
     noEdit: true
   },
   // 2
-  { msg: 'You can toggle the bits of the program by clicking them.',
+  { msg: 'Toggle the bits of the program by clicking them.',
+    grid: [[0,0,0,0,0,0,0,0],
+           [1,1,1,1,0,0,0,0],
+           [0,0,0,1,0,1,1,1],
+           [1,1,1,1,0,1,0,0],
+           [0,0,0,0,0,1,1,1],
+           [0,0,0,0,0,0,0,0],
+           [0,0,0,0,0,0,0,0],
+           [0,0,0,0,0,0,0,0]],
     guyAt: {i: 2, j: 2},
     goalAt: {i: 6, j: 3},
     noPlay: true
@@ -780,7 +778,7 @@ let transformAnim;
 
 setSize();
 
-let curLevel = 3;
+let curLevel = 2;
 if (LEVELS[curLevel].msg) {
   showMessage(LEVELS[curLevel].msg, !LEVELS[curLevel].guyAt);
 } else {
