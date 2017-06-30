@@ -26,16 +26,19 @@ let LANDSCAPE = true;
 const PAD_X = 10;
 const PAD_Y = 10;
 
-const LANDSCAPE_CONTROLS_X = 70;
+const LANDSCAPE_CONTROLS_X = 35;
 const LANDSCAPE_CONTROLS_Y = 20;
-const PORTRAIT_CONTROLS_X = 100;
+const PORTRAIT_CONTROLS_X = 70;
 const PORTRAIT_CONTROLS_Y = 20;
 let CONTROLS_X = 10;
 let CONTROLS_Y = 10;
 
-const CONTROL_H = 80;
 const CONTROL_W = 48;
+const CONTROL_H = 80;
 const CONTROL_PAD = 25;
+
+const ICON_W = 10;
+const ICON_H = 20;
 
 const LANDSCAPE_GRID_X = 200;
 const LANDSCAPE_GRID_Y = 10;
@@ -106,7 +109,7 @@ const setSize = function () {
   ctx.scale(DPR, DPR);
 }
 
-const resizeHandler = function (e) {
+const handleResize = function (e) {
   setSize();
   requestDraw();
 };
@@ -282,50 +285,77 @@ const drawPC = function (pc) {
 
 };
 
-const drawControls = function (showPlay, playPressed, stepPressed) {
+const drawPlay = function (ctx, x, y, w, h) {
+  // play button
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + w, y + h * 0.5);
+  ctx.lineTo(x, y + h);
+  ctx.closePath();
   ctx.fillStyle = CONTROL_COLOR;
+  ctx.fill();
+};
 
-  let x = CONTROLS_X;
-  let y = CONTROLS_Y;
-  // step button
+const drawStep = function (ctx, x, y, w, h) {
   ctx.beginPath();
   // triangle start
   ctx.moveTo(x, y);
-  ctx.lineTo(x + CONTROL_W * 0.75, y + CONTROL_H * .5);
+  ctx.lineTo(x + w * 0.75, y + h * .5);
   // bar
-  ctx.lineTo(x + CONTROL_W * 0.75, y);
-  ctx.lineTo(x + CONTROL_W, y);
-  ctx.lineTo(x + CONTROL_W, y + CONTROL_H);
-  ctx.lineTo(x + CONTROL_W * 0.75, y + CONTROL_H);
+  ctx.lineTo(x + w* 0.75, y);
+  ctx.lineTo(x + w, y);
+  ctx.lineTo(x + w, y + h);
+  ctx.lineTo(x + w* 0.75, y + h);
   // triangle end
-  ctx.lineTo(x + CONTROL_W * 0.75, y + CONTROL_H * 0.5);
-  ctx.lineTo(x, y + CONTROL_H);
+  ctx.lineTo(x + w* 0.75, y + h * 0.5);
+  ctx.lineTo(x, y + h);
   ctx.closePath();
+  ctx.fillStyle = CONTROL_COLOR;
   ctx.fill();
+};
 
+const drawReset = function (ctx, x, y, w, h) {
+  ctx.beginPath();
+  ctx.moveTo(x, y + h * 0.5);
+  ctx.lineTo(x + w * 0.5, y);
+  ctx.lineTo(x + w * 0.5, y + h * 0.5);
+  ctx.lineTo(x + w, y);
+  ctx.lineTo(x + w, y + h);
+  ctx.lineTo(x + w* 0.5, y + h* 0.5);
+  ctx.lineTo(x + w * 0.5, y + h);
+  ctx.closePath();
+  ctx.fillStyle = CONTROL_COLOR;
+  ctx.fill();
+};
+
+const drawControls = function (showPlay, showReset, playPressed, stepPressed) {
+  let x = CONTROLS_X;
+  let y = CONTROLS_Y;
+  // step button
+  drawStep(ctx, x, y, CONTROL_W, CONTROL_H);
   if (stepPressed) {
     ctx.strokeStyle = 'blue';
     ctx.lineWidth = 5;
     ctx.stroke();
   }
 
-
   y += CONTROL_H + CONTROL_PAD;
 
   if (showPlay) {
-    // play button
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + CONTROL_W, y + CONTROL_H * 0.5);
-    ctx.lineTo(x, y + CONTROL_H);
-    ctx.closePath();
-    ctx.fill();
-
+    drawPlay(ctx, x, y, CONTROL_W, CONTROL_H);
     if (playPressed) {
       ctx.strokeStyle = 'blue';
       ctx.lineWidth = 5;
       ctx.stroke();
     }
+  }
+
+  y = CONTROLS_Y;
+  x += CONTROL_W + CONTROL_PAD;
+
+
+  if (showReset) {
+    drawReset(ctx, x, y, CONTROL_W, CONTROL_H);
   }
 
 };
@@ -480,6 +510,7 @@ const draw = function (t) {
   }
 
   drawControls(!LEVEL_STATE.noPlay,
+    (LEVEL_STATE.playActive || LEVEL_STATE.stepActive),
     LEVEL_STATE.playActive, LEVEL_STATE.stepActive);
 
   drawLegend(LEVEL_STATE.limitedLegend, LEVEL_STATE.progress);
@@ -497,7 +528,7 @@ const draw = function (t) {
   }
 };
 
-const clickHandler = function (e) {
+const handleClick = function (e) {
   if (e.button !== 0) {
     return;
   }
@@ -506,6 +537,13 @@ const clickHandler = function (e) {
   e.stopPropagation();
   const x = e.pageX/RESIZE_SCALE;
   const y = e.pageY/RESIZE_SCALE;
+
+  if (!LEVEL_STATE || !LEVEL_STATE.guyAt) {
+    hideMessage();
+    // TODO: advance callback
+    return;
+  }
+
   if (!LEVEL_STATE.noEdit && !LEVEL_STATE.stepActive &&
       x >= GRID_X && x < GRID_X + GRID_W * GRID_COLS &&
       y >= GRID_Y && y < GRID_Y * GRID_H * GRID_ROWS) {
@@ -529,6 +567,11 @@ const clickHandler = function (e) {
              y < CONTROLS_Y + 2 * CONTROL_H + CONTROL_PAD &&
              x >= CONTROLS_X && x < CONTROLS_X + CONTROL_W) {
     LEVEL_STATE.playActive = true;
+  } else if ((LEVEL_STATE.playActive || LEVEL_STATE.stepActive) &&
+             y >= CONTROLS_Y && y < CONTROLS_Y + CONTROL_H &&
+             x >= CONTROLS_X + CONTROL_PAD + CONTROL_W &&
+             x < CONTROLS_X + CONTROL_PAD + CONTROL_W * 2) {
+    resetLevel(LEVEL_STATE);
   }
 
   requestDraw();
@@ -536,9 +579,15 @@ const clickHandler = function (e) {
 
 
 const LEVELS = [
-  // level 0
+  // 0
+  { msg: 'Welcome to PrograMaze!<br><br>' +
+         'The object of each level is to move the ' +
+         '<span style="color: orange">orange</span> box to the ' +
+         '<span style ="color: blue">blue</span> goal.' },
+  // 1
   {
-    msg: 'Click Step repeatedly to run the program.',
+    msg: 'Click Step (<canvas id="stepIcon"></canvas>) ' +
+         'repeatedly to run the program.',
     grid: [[0,0,0,0,0,0,0,0],
            [1,1,0,0,0,0,0,0],
            [0,0,0,0,0,0,0,0],
@@ -553,41 +602,48 @@ const LEVELS = [
     noPlay: true,
     noEdit: true
   },
-  // level 1
+  // 2
   { msg: 'You can toggle the bits of the program by clicking them.',
     guyAt: {i: 2, j: 2},
     goalAt: {i: 6, j: 3},
     noPlay: true
   },
-  // level 2
-  { msg: 'Clicking Play will run the program automatically',
+  // 3
+  { msg: 'Click Play (<canvas id="playIcon"></canvas>) '+
+         'to run the program automatically.',
     guyAt: {i: 6, j: 0},
     goalAt: {i: 1, j: 3},
   },
-  // level 3
+  // 4
   { guyAt: {i: 5, j: 7},
     goalAt: {i: 1, j: 0},
   },
-  // level 4
+  // 5
   { guyAt: {i: 3, j: 0},
     goalAt: {i: 3, j: 7},
   },
-  // level 5
+  // 6
   { guyAt: {i: 4, j: 7},
     goalAt: {i: 4, j: 0},
   },
+  // 7
   {msg: 'Boss puzzle!'},
-  // level 6
+  // 8
   { guyAt: {i: 1, j: 7},
     goalAt: {i: 6, j: 0},
   },
+  // 9
   {msg: 'Final phase!'},
-  // level 7
+  // 10
   { guyAt: {i: 1, j: 0},
     goalAt: {i: 6, j: 0},
   },
-  {msg: 'Thanks for playing!'}
+  // 11
+  {msg: 'You win!<br>Thanks for playing!'}
 ];
+
+const RESET_MESSAGE = 'Click Reset (<canvas id="resetIcon"></canvas>) '+
+                      'to undo.';
 
 const initLevel = function (level) {
   const state = {grid: []};
@@ -608,6 +664,7 @@ const initLevel = function (level) {
   state.noPlay = level.noPlay;
   state.limitedLegend = level.limitedLegend;
   state.noEdit = level.noEdit;
+  state.msg = level.msg;
 
   return state;
 };
@@ -619,16 +676,46 @@ const resetLevel = function (state) {
   state.playActive = false;
   state.stepActive = false;
   state.progress = 0;
+
+  if (state.msg) {
+    showMessage(state.msg, false);
+  } else {
+    hideMessage();
+  }
 };
 
-const showMessage = function (msg) {
+const showMessage = function (msg, fullscreen) {
   const div = document.getElementById('message');
   div.style.visibility = 'visible';
-  div.textContent = msg;
+  if (fullscreen) {
+    div.style.top = '0';
+    div.style.bottom = '';
+    div.style['padding-top'] = '100px';
+  } else {
+    div.style.top = '';
+    div.style.bottom = '';
+    div.style['padding-top'] = '';
+  }
+  div.innerHTML = msg;
+
+  [{id: 'stepIcon', f: drawStep},
+   {id: 'playIcon', f: drawPlay},
+   {id: 'resetIcon', f: drawReset}].forEach(function ({id, f}) {
+       const icon = document.getElementById(id);
+    if (!icon ) {
+      return;
+    }
+    icon.width = ICON_W;
+    icon.height = ICON_H;
+    icon.style.width = ICON_W + 'px';
+    icon.style.height = ICON_H + 'px';
+    f(icon.getContext('2d'), 0, 0, ICON_W, ICON_H);
+  });
 };
+
 const hideMessage = function () {
   const div = document.getElementById('message');
-  div.textContent = '';
+  div.innerHTML = '';
   div.style.visibility = 'hidden';
 };
 
@@ -668,6 +755,8 @@ const runCommand = function () {
     if (LEVEL_STATE.pc >= 32) {
       LEVEL_STATE.pc = 0;
     }
+  } else {
+    showMessage(RESET_MESSAGE, false);
   }
 };
 
@@ -691,18 +780,20 @@ let transformAnim;
 
 setSize();
 
-let curLevel = 2;
+let curLevel = 3;
 if (LEVELS[curLevel].msg) {
-  showMessage(LEVELS[curLevel].msg);
+  showMessage(LEVELS[curLevel].msg, !LEVELS[curLevel].guyAt);
 } else {
   hideMessage();
 }
 
-LEVEL_STATE = initLevel(LEVELS[curLevel]);
-resetLevel(LEVEL_STATE);
-requestDraw();
+if (LEVELS[curLevel].guyAt) {
+  LEVEL_STATE = initLevel(LEVELS[curLevel]);
+  resetLevel(LEVEL_STATE);
+  requestDraw();
+}
 
-cnv.addEventListener('click', clickHandler);
-window.addEventListener('resize', resizeHandler);
+window.addEventListener('click', handleClick);
+window.addEventListener('resize', handleResize);
 
 })();
