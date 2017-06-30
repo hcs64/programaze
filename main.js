@@ -328,15 +328,18 @@ const drawReset = function (ctx, x, y, w, h) {
   ctx.fill();
 };
 
-const drawControls = function (showPlay, showReset, playPressed, stepPressed) {
+const drawControls = function (showPlay, showReset, showStep, playPressed, stepPressed) {
   let x = CONTROLS_X;
   let y = CONTROLS_Y;
   // step button
-  drawStep(ctx, x, y, CONTROL_W, CONTROL_H);
-  if (stepPressed) {
-    ctx.strokeStyle = 'blue';
-    ctx.lineWidth = 5;
-    ctx.stroke();
+
+  if (showStep) {
+    drawStep(ctx, x, y, CONTROL_W, CONTROL_H);
+    if (stepPressed) {
+      ctx.strokeStyle = 'blue';
+      ctx.lineWidth = 5;
+      ctx.stroke();
+    }
   }
 
   y += CONTROL_H + CONTROL_PAD;
@@ -510,8 +513,9 @@ const draw = function (t) {
     drawPC(LEVEL_STATE.pc);
   }
 
-  drawControls(!LEVEL_STATE.noPlay,
+  drawControls(!LEVEL_STATE.noPlay && !LEVEL_STATE.dead,
     (LEVEL_STATE.playActive || LEVEL_STATE.stepActive),
+    !LEVEL_STATE.playActive && !LEVEL_STATE.dead,
     LEVEL_STATE.playActive, LEVEL_STATE.stepActive);
 
   drawLegend(LEVEL_STATE.limitedLegend, LEVEL_STATE.progress);
@@ -558,6 +562,11 @@ const handleClick = function (e) {
       // kickoff
       LEVEL_STATE.stepActive = true;
       LEVEL_STATE.progress = 1;
+      // check for crushed immediately
+      if (LEVEL_STATE.grid[LEVEL_STATE.guyAt.j][LEVEL_STATE.guyAt.i] === 1) {
+        LEVEL_STATE.dead = true;
+        showMessage(RESET_MESSAGE, false);
+      }
     } else {
       // continue
       runCommand();
@@ -686,6 +695,8 @@ const resetLevel = function (state) {
   } else {
     hideMessage();
   }
+
+  state.dead = false;
 };
 
 const showMessage = function (msg, fullscreen) {
@@ -733,10 +744,11 @@ const runCommand = function () {
   const pc = LEVEL_STATE.pc;
   const pcj = Math.floor(pc /4);
   const pci = (pc - pcj * 4) * 2;
+  const ls = LEVEL_STATE;
 
-  const b1 = LEVEL_STATE.grid[pcj][pci];
-  const b0 = LEVEL_STATE.grid[pcj][pci+1];
-  const guyAt = LEVEL_STATE.guyAt;
+  const b1 = ls.grid[pcj][pci];
+  const b0 = ls.grid[pcj][pci+1];
+  const guyAt = ls.guyAt;
   let dest;
 
   if (b1 === 0 && b0 === 0) {
@@ -753,19 +765,20 @@ const runCommand = function () {
     dest = {i: guyAt.i, j: guyAt.j + 1};
   }
 
-  if (checkDest(dest)) {
-    LEVEL_STATE.guyAt = dest;
+  if (!ls.dead && checkDest(dest)) {
+    ls.guyAt = dest;
 
-    if (LEVEL_STATE.guyAt.i === LEVEL_STATE.goalAt.i &&
-        LEVEL_STATE.guyAt.j === LEVEL_STATE.goalAt.j) {
+    if (ls.guyAt.i === ls.goalAt.i && ls.guyAt.j === ls.goalAt.j) {
       winLevel();
+      ls = LEVEL_STATE;
     } else {
-      LEVEL_STATE.pc  = pc + 1;
-      if (LEVEL_STATE.pc >= 32) {
-        LEVEL_STATE.pc = 0;
+      ls.pc += 1;
+      if (ls.pc >= 32) {
+        ls.pc = 0;
       }
     }
   } else {
+    ls.dead = true;
     showMessage(RESET_MESSAGE, false);
   }
 };
