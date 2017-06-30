@@ -109,23 +109,10 @@ const setSize = function () {
   ctx.scale(DPR, DPR);
 }
 
-setSize();
-
-const move = MOVE();
-
-let startTime = null;
-
-const stretch = [{t: 0, x: 1},
-                 {t: 150, x: 2.2, f: MOVE.quadin},
-                 {t: 300, x: 1},];
-const crawl = [{t: 0, x: 0},
-               {t: 150, x: 0, f: MOVE.quadin},
-               {t: 300, x: 1.2}];
-
-const transform01 = [{t: 0, x: 0}, {t: 125, x: 1}];
-const transform10 = [{t: 0, x: 1}, {t: 125, x: 0}];
-
-let transformAnim;
+const resizeHandler = function (e) {
+  setSize();
+  requestDraw();
+};
 
 const lerp = function (x0, x1, t) {
   return x0 + (x1 - x0) * t;
@@ -338,13 +325,13 @@ const drawControls = function (showPlay, playPressed, stepPressed) {
 
 };
 
-const drawLegend = function (t) {
+const drawLegend = function (limited, t) {
   let initX;
   let initY;
   
   if (LANDSCAPE) {
     initX = 2 ;
-    initY = LANDSCAPE_CONTROLS_Y + (CONTROL_PAD + CONTROL_H) * 2;
+    initY = LANDSCAPE_CONTROLS_Y + CONTROL_PAD + CONTROL_H * 2;
   } else {
     initX = GRID_X + GRID_W * 4;
     initY = -2;
@@ -372,43 +359,46 @@ const drawLegend = function (t) {
   x = initX;
   y += GRID_H;
 
-  ctx.lineWidth = 1;
-  draw0({x, y}, PAIR_OFFSET, BG_COLOR, t);
-  x += GRID_W;
-  draw1({x, y}, -PAIR_OFFSET, t);
-  x += GRID_W;
-  drawEq({x, y});
-  x += EQ_W;
 
-  ctx.strokeStyle = 'white';
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(x + GRID_W * .65, y + GRID_H * .3);
-  ctx.lineTo(x + GRID_W * .35, y + GRID_H * .5);
-  ctx.lineTo(x + GRID_W * .65, y + GRID_H * .7);
-  ctx.stroke();
+  if (!limited) {
+    ctx.lineWidth = 1;
+    draw0({x, y}, PAIR_OFFSET, BG_COLOR, t);
+    x += GRID_W;
+    draw1({x, y}, -PAIR_OFFSET, t);
+    x += GRID_W;
+    drawEq({x, y});
+    x += EQ_W;
 
-  x = initX;
-  y += GRID_H;
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(x + GRID_W * .65, y + GRID_H * .3);
+    ctx.lineTo(x + GRID_W * .35, y + GRID_H * .5);
+    ctx.lineTo(x + GRID_W * .65, y + GRID_H * .7);
+    ctx.stroke();
 
-  ctx.lineWidth = 1;
-  draw1({x, y}, PAIR_OFFSET, t);
-  x += GRID_W;
-  draw0({x, y}, -PAIR_OFFSET, BG_COLOR, t);
-  x += GRID_W
-  drawEq({x, y});
-  x += EQ_W;
+    x = initX;
+    y += GRID_H;
 
-  ctx.strokeStyle = 'white';
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(x + GRID_W * .3, y + GRID_H * .35);
-  ctx.lineTo(x + GRID_W * .5, y + GRID_H * .65);
-  ctx.lineTo(x + GRID_W * .7, y + GRID_H * .35);
-  ctx.stroke();
+    ctx.lineWidth = 1;
+    draw1({x, y}, PAIR_OFFSET, t);
+    x += GRID_W;
+    draw0({x, y}, -PAIR_OFFSET, BG_COLOR, t);
+    x += GRID_W
+      drawEq({x, y});
+    x += EQ_W;
 
-  x = initX;
-  y += GRID_H;
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(x + GRID_W * .3, y + GRID_H * .35);
+    ctx.lineTo(x + GRID_W * .5, y + GRID_H * .65);
+    ctx.lineTo(x + GRID_W * .7, y + GRID_H * .35);
+    ctx.stroke();
+
+    x = initX;
+    y += GRID_H;
+  }
 
   ctx.lineWidth = 1;
   draw1({x, y}, PAIR_OFFSET, t);
@@ -437,7 +427,7 @@ const requestDraw = function () {
   }
 };
 
-const click = function (state, {i, j}) {
+const toggleBit = function (state, {i, j}) {
   if (state.grid[j][i] === 1) {
     state.grid[j][i] = 0;
   } else {
@@ -482,7 +472,7 @@ const draw = function (t) {
 
   drawControls(!LEVEL_STATE.noPlay, PLAY_PRESSED, STEP_PRESSED);
 
-  drawLegend(progress);
+  drawLegend(LEVEL_STATE.limitedLegend, progress);
 
   if (transformAnim) {
     if (move.isAnimDone(transformAnim, t)) {
@@ -496,6 +486,36 @@ const draw = function (t) {
     }
   }
 };
+
+const clickHandler = function (e) {
+  if (e.button !== 0) {
+    return;
+  }
+
+  e.preventDefault();
+  e.stopPropagation();
+  const x = e.pageX/RESIZE_SCALE;
+  const y = e.pageY/RESIZE_SCALE;
+  if (!LEVEL_STATE.noEdit &&
+      x >= GRID_X && x < GRID_X + GRID_W * GRID_COLS &&
+      y >= GRID_Y && y < GRID_Y * GRID_H * GRID_ROWS) {
+    toggleBit(LEVEL_STATE,
+          {i: Math.floor((x - GRID_X) / GRID_W),
+           j: Math.floor((y - GRID_Y) / GRID_H)});
+  } else if (x >= CONTROLS_X && x < CONTROLS_X + CONTROL_W &&
+             y >= CONTROLS_Y && y < CONTROLS_Y + CONTROL_H) {
+    STEP_PRESSED = !STEP_PRESSED;
+  } else if (SHOW_PLAY &&
+             y >= CONTROLS_Y + CONTROL_H + CONTROL_PAD &&
+             y < CONTROLS_Y + 2 * CONTROL_H + CONTROL_PAD &&
+             x >= CONTROLS_X && x < CONTROLS_X + CONTROL_W) {
+    PLAY_PRESSED = !PLAY_PRESSED;
+    flipToggle(performance.now());
+  }
+
+  requestDraw();
+};
+
 
 const LEVELS = [
   // level 0
@@ -511,7 +531,9 @@ const LEVELS = [
            [0,0,0,0,0,0,0,0]],
     guyAt: {i: 6, j: 0},
     goalAt: {i: 2, j: 1},
-    noPlay: true
+    limitedLegend: true,
+    noPlay: true,
+    noEdit: true
   },
   // level 1
   { msg: 'You can toggle the bits of the program by clicking them.',
@@ -566,6 +588,8 @@ const initLevel = function (level) {
   state.guyAtInit = level.guyAt;
   state.goalAt = level.goalAt;
   state.noPlay = level.noPlay;
+  state.limitedLegend = level.limitedLegend;
+  state.noEdit = level.noEdit;
 
   return state;
 };
@@ -590,46 +614,36 @@ const hideMessage = function () {
 
 // main code starts here
 
+const move = MOVE();
+
+/*
+const stretch = [{t: 0, x: 1},
+                 {t: 150, x: 2.2, f: MOVE.quadin},
+                 {t: 300, x: 1},];
+const crawl = [{t: 0, x: 0},
+               {t: 150, x: 0, f: MOVE.quadin},
+               {t: 300, x: 1.2}];
+
+const transform01 = [{t: 0, x: 0}, {t: 125, x: 1}];
+const transform10 = [{t: 0, x: 1}, {t: 125, x: 0}];
+
+*/
+let transformAnim;
+
+setSize();
+
 let curLevel = 1;
 if (LEVELS[curLevel].msg) {
   showMessage(LEVELS[curLevel].msg);
 } else {
   hideMessage();
 }
+
 LEVEL_STATE = initLevel(LEVELS[curLevel]);
 resetLevel(LEVEL_STATE);
 requestDraw();
 
-cnv.addEventListener('click', function (e) {
-  if (e.button !== 0) {
-    return;
-  }
-
-  e.preventDefault();
-  const x = e.pageX/RESIZE_SCALE;
-  const y = e.pageY/RESIZE_SCALE;
-  if (x >= GRID_X && x < GRID_X + GRID_W * GRID_COLS &&
-      y >= GRID_Y && y < GRID_Y * GRID_H * GRID_ROWS) {
-    click(LEVEL_STATE,
-          {i: Math.floor((x - GRID_X) / GRID_W),
-           j: Math.floor((y - GRID_Y) / GRID_H)});
-  } else if (x >= CONTROLS_X && x < CONTROLS_X + CONTROL_W &&
-             y >= CONTROLS_Y && y < CONTROLS_Y + CONTROL_H) {
-    STEP_PRESSED = !STEP_PRESSED;
-  } else if (SHOW_PLAY &&
-             y >= CONTROLS_Y + CONTROL_H + CONTROL_PAD &&
-             y < CONTROLS_Y + 2 * CONTROL_H + CONTROL_PAD &&
-             x >= CONTROLS_X && x < CONTROLS_X + CONTROL_W) {
-    PLAY_PRESSED = !PLAY_PRESSED;
-    flipToggle(performance.now());
-  }
-
-  requestDraw();
-});
-
-window.addEventListener('resize', function (e) {
-  setSize();
-  requestDraw();
-});
+cnv.addEventListener('click', clickHandler);
+window.addEventListener('resize', resizeHandler);
 
 })();
