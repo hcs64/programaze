@@ -2,7 +2,7 @@
 'use strict';
 
 const GUY_COLOR = 'orange';
-const GOAL_COLOR = 'blue';
+const GOAL_COLOR = 'cornflowerblue';
 const BG_COLOR = 'black';
 const CONTROL_COLOR = 'white';
 
@@ -48,7 +48,7 @@ let GRID_X = 10;
 let GRID_Y = 10;
 
 const GRID_ANIM_MS = 150;
-const MOVE_ANIM_MS = 150;
+const MOVE_ANIM_MS = 250;
 const GUY_SCALE = 0.8;
 
 let LEVEL_STATE = null;
@@ -474,21 +474,36 @@ const flipToggle = function (t) {
 };
 */
 
-const animateMove = function (anim, from, to) {
-  anim.push(
-    {t: 0, stretch: 1, crawlI: from.i - to.i, crawlJ: from.j - to.j},
-    {t: MOVE_ANIM_MS, stretch: 1, crawlI: 0, crawlJ: 0});
+const animateProgress = function (state, progress, cb) {
+  if (state.progress !== progress) {
+    state.progressAnim.push(
+      {t: 0, x: state.progress}, {t: GRID_ANIM_MS, x: progress, cb});
+    state.progress = progress;
+  }
 };
 
-const animateBump = function (anim, from, to) {
-  // how far he gets before the bump
+const animateMove = function (anim, from, to, auto, t) {
+  const cb = auto ? autoRunCommand : checkForWin;
+  const offset = auto ? t : 0;
+  anim.push(
+    {t: offset, timeOffset: auto,
+      stretch: 1, crawlI: from.i - to.i, crawlJ: from.j - to.j},
+    {t: MOVE_ANIM_MS + offset, timeOffset: auto,
+      stretch: 1, crawlI: 0, crawlJ: 0, cb});
+};
+
+const animateBump = function (anim, from, to, auto, t) {
+  // how far it gets before the bump
+  const offset = auto ? t : 0;
   const amt = (1 - GUY_SCALE) / 2;
   const dirI = to.i - from.i;
   const dirJ = to.j - from.j;
   anim.push(
-    {t: 0, stretch: 1, crawlI: 0, crawlJ: 0},
-    {t: MOVE_ANIM_MS * amt, stretch: 1, crawlI: dirI * amt, crawlJ: dirJ * amt},
-    {t: MOVE_ANIM_MS * amt * 5, stretch: 1, crawlI: 0, crawlJ: 0});
+    {t: offset, timeOffset: auto, stretch: 1, crawlI: 0, crawlJ: 0},
+    {t: MOVE_ANIM_MS * amt + offset, timeOffset: auto,
+      stretch: 1, crawlI: dirI * amt, crawlJ: dirJ * amt},
+    {t: MOVE_ANIM_MS * amt * 5 + offset, timeOffset: auto,
+      stretch: 1, crawlI: 0, crawlJ: 0});
 
 };
 
@@ -514,16 +529,23 @@ const draw = function (t) {
   });
 
   let curProgressFrame = LEVEL_STATE.progressAnim[0], prevProgressFrame;
-  while (LEVEL_STATE.progressAnim.length > 0 && curProgressFrame.t <= t) {
+  while (LEVEL_STATE.progressAnim.length > 0 && curProgressFrame.timeOffset && 
+         curProgressFrame.t <= t) {
+    if (curProgressFrame.cb) {
+      curProgressFrame.cb(t);
+      curProgressFrame.cb = null;
+    }
     prevProgressFrame = LEVEL_STATE.progressAnim.shift();
     curProgressFrame = LEVEL_STATE.progressAnim[0];
   }
+
   if (curProgressFrame && LEVEL_STATE.progressAnim.length === 0) {
     progress = curProgressFrame.x;
   } else if (curProgressFrame && prevProgressFrame) {
     progress = lerp(prevProgressFrame.x, curProgressFrame.x,
       (t - prevProgressFrame.t) / (curProgressFrame.t - prevProgressFrame.t));
   }
+
 
   if (LEVEL_STATE.progressAnim.length > 0) {
     if (prevProgressFrame) {
@@ -539,7 +561,6 @@ const draw = function (t) {
   let stretchX = 1;
   let crawlI = 0;
   let crawlJ = 0;
-  let curAnimFrame = LEVEL_STATE.guyAnim[0], prevAnimFrame;
 
   LEVEL_STATE.guyAnim.forEach(function (f) {
     if (!f.timeOffset) {
@@ -548,10 +569,17 @@ const draw = function (t) {
     }
   });
 
-while (LEVEL_STATE.guyAnim.length > 0 && curAnimFrame.t <= t) {
+  let curAnimFrame = LEVEL_STATE.guyAnim[0], prevAnimFrame;
+  while (LEVEL_STATE.guyAnim.length > 0 && curAnimFrame.timeOffset &&
+         curAnimFrame.t <= t) {
+    if (curAnimFrame.cb) {
+      curAnimFrame.cb(t);
+      curAnimFrame.cb = null;
+    }
     prevAnimFrame = LEVEL_STATE.guyAnim.shift();
     curAnimFrame = LEVEL_STATE.guyAnim[0];
   }
+
   if (curAnimFrame && LEVEL_STATE.guyAnim.length === 0) {
     // past the last keyframe, just use it directly
     stretchX = curAnimFrame.stretch;
@@ -574,6 +602,7 @@ while (LEVEL_STATE.guyAnim.length > 0 && curAnimFrame.t <= t) {
     requestDraw();
   }
 
+
   drawGuy({i: LEVEL_STATE.guyAt.i + crawlI,
            j: LEVEL_STATE.guyAt.j + crawlJ}, progress, stretchX);
 
@@ -585,7 +614,7 @@ while (LEVEL_STATE.guyAnim.length > 0 && curAnimFrame.t <= t) {
   }
 
   drawControls(!LEVEL_STATE.noPlay && !LEVEL_STATE.dead,
-    (LEVEL_STATE.playActive || LEVEL_STATE.stepActive),
+    (LEVEL_STATE.playActive || LEVEL_STATE.stepActive || LEVEL_STATE.dead),
     !LEVEL_STATE.playActive,
     LEVEL_STATE.playActive, LEVEL_STATE.stepActive);
 
@@ -611,13 +640,10 @@ const handleClick = function ({x: pageX, y: pageY}) {
   } else if (!LEVEL_STATE.playActive &&
              x >= CONTROLS_X && x < CONTROLS_X + CONTROL_W &&
              y >= CONTROLS_Y && y < CONTROLS_Y + CONTROL_H) {
-    if (!LEVEL_STATE.stepActive) {
+    if (LEVEL_STATE.progress === 0) {
       // kickoff
       LEVEL_STATE.stepActive = true;
-      if (LEVEL_STATE.progress !== 1) {
-        LEVEL_STATE.progressAnim.push({t: 0, x: 0}, {t: GRID_ANIM_MS, x: 1});
-        LEVEL_STATE.progress = 1;
-      }
+      animateProgress(LEVEL_STATE, 1);
       // check for crushed immediately
       if (LEVEL_STATE.grid[LEVEL_STATE.guyAt.j][LEVEL_STATE.guyAt.i] === 1) {
         LEVEL_STATE.dead = true;
@@ -625,7 +651,7 @@ const handleClick = function ({x: pageX, y: pageY}) {
       }
     } else {
       // continue
-      runCommand();
+      runCommand(false);
     }
   } else if (!LEVEL_STATE.noPlay &&
              !LEVEL_STATE.playActive && !LEVEL_STATE.stepActive &&
@@ -633,7 +659,16 @@ const handleClick = function ({x: pageX, y: pageY}) {
              y < CONTROLS_Y + 2 * CONTROL_H + CONTROL_PAD &&
              x >= CONTROLS_X && x < CONTROLS_X + CONTROL_W) {
     LEVEL_STATE.playActive = true;
-  } else if ((LEVEL_STATE.playActive || LEVEL_STATE.stepActive) &&
+
+      if (LEVEL_STATE.grid[LEVEL_STATE.guyAt.j][LEVEL_STATE.guyAt.i] === 1) {
+        animateProgress(LEVEL_STATE, 1);
+        LEVEL_STATE.dead = true;
+        showMessage(RESET_MESSAGE, false);
+      } else {
+        animateProgress(LEVEL_STATE, 1, function (t) { autoRunCommand(t); });
+      } 
+
+  } else if ((LEVEL_STATE.playActive || LEVEL_STATE.stepActive || LEVEL_STATE.dead) &&
              y >= CONTROLS_Y && y < CONTROLS_Y + CONTROL_H &&
              x >= CONTROLS_X + CONTROL_PAD + CONTROL_W &&
              x < CONTROLS_X + CONTROL_PAD + CONTROL_W * 2) {
@@ -644,13 +679,13 @@ const handleClick = function ({x: pageX, y: pageY}) {
 };
 
 
-let CUR_LEVEL = 6;
+let CUR_LEVEL = 3;
 const LEVELS = [
   // 0
   { msg: 'Welcome to PrograMaze!<br><br>' +
          'The object of each level is to move the ' +
-         '<span style="color: orange">orange</span> box to the ' +
-         '<span style ="color: blue">blue</span> goal.' },
+         '<span style="color: ' + GUY_COLOR + '">orange</span> box to the ' +
+         '<span style ="color: ' + GOAL_COLOR + '">blue</span> goal.' },
   // 1
   {
     msg: 'Click Step (<canvas id="stepIcon"></canvas>) ' +
@@ -748,10 +783,8 @@ const resetLevel = function (state) {
   state.pc = 0;
   state.playActive = false;
   state.stepActive = false;
-  if (state.progress !== 0) {
-    state.progressAnim.push({t: 0, x: 1}, {t: GRID_ANIM_MS, x: 0});
-    state.progress = 0;
-  }
+  animateProgress(state, 0);
+  state.guyAnim = [];
 
   if (state.msg) {
     showMessage(state.msg, false);
@@ -803,7 +836,7 @@ const checkDest = function ({i, j}) {
          LEVEL_STATE.grid[j][i] !== 1;
 }
 
-const runCommand = function () {
+const runCommand = function (auto, t) {
   const pc = LEVEL_STATE.pc;
   const pcj = Math.floor(pc /4);
   const pci = (pc - pcj * 4) * 2;
@@ -829,24 +862,36 @@ const runCommand = function () {
   }
 
   if (!ls.dead && checkDest(dest)) {
-    animateMove(LEVEL_STATE.guyAnim, ls.guyAt, dest);
+    animateMove(LEVEL_STATE.guyAnim, ls.guyAt, dest, auto, t);
     ls.guyAt = dest;
 
-    if (ls.guyAt.i === ls.goalAt.i && ls.guyAt.j === ls.goalAt.j) {
-      winLevel();
-      ls = LEVEL_STATE;
-    } else {
-      ls.pc += 1;
-      if (ls.pc >= 32) {
-        ls.pc = 0;
-      }
+    ls.pc += 1;
+    if (ls.pc >= 32) {
+      ls.pc = 0;
     }
   } else {
-    animateBump(LEVEL_STATE.guyAnim, ls.guyAt, dest);
+    LEVEL_STATE.playActive = false;
+    animateBump(LEVEL_STATE.guyAnim, ls.guyAt, dest, auto, t);
     showMessage(RESET_MESSAGE, false);
 
     ls.dead = true;
   }
+};
+
+const checkForWin = function () {
+  const ls = LEVEL_STATE;
+  if (ls.guyAt.i === ls.goalAt.i && ls.guyAt.j === ls.goalAt.j) {
+    winLevel();
+    return true;
+  }
+  return false;
+};
+
+const autoRunCommand = function (t) {
+  if (checkForWin()) {
+    return;
+  }
+  runCommand(true, t);
 };
 
 const startLevel = function () {
