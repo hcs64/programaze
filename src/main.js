@@ -818,10 +818,10 @@ const LEVELS = [
          'The object of each level is to move the ' +
          '<span style="color: ' + GUY_COLOR + '">orange</span> box to the ' +
          '<span style ="color: ' + GOAL_COLOR + '">blue</span> goal.<br><br>' +
-         'Click or tap to begin'},
+         'Tap or click to begin'},
   // 1
   {
-    msg: 'Click Step (<canvas id="stepIcon"></canvas>) ' +
+    msg: 'Tap Step (<canvas id="stepIcon"></canvas>) ' +
          'repeatedly to run the program.',
     guyAt: {i: 6, j: 0},
     goalAt: {i: 1, j: 0},
@@ -830,7 +830,7 @@ const LEVELS = [
     noEdit: true
   },
   // 2
-  { msg: 'Toggle the bits of the program by clicking them.',
+  { msg: 'Toggle the bits of the program by tapping them.',
     grid: [[1,1,1,1,1,1,1,1],
            [0,0,0,0,0,0,0,0],
            [0,0,0,0,0,0,0,0],
@@ -844,7 +844,7 @@ const LEVELS = [
     noPlay: true
   },
   // 3
-  { msg: 'Click Play (<canvas id="playIcon"></canvas>) '+
+  { msg: 'Tap Play (<canvas id="playIcon"></canvas>) '+
          'to run the program automatically.',
     guyAt: {i: 5, j: 0},
     goalAt: {i: 0, j: 3},
@@ -880,8 +880,8 @@ const LEVELS = [
         '</small>'}
 ];
 
-const RESET_MESSAGE = 'Click Reset (<canvas id="resetIcon"></canvas>) '+
-                      'to undo.';
+const RESET_MESSAGE = 'Tap Reset (<canvas id="resetIcon"></canvas>) '+
+                      'to retry.';
 
 const initLevel = function (level) {
   const state = {grid: []};
