@@ -806,10 +806,11 @@ const handleClick = function ({x: pageX, y: pageY}) {
 let CUR_LEVEL = 0;
 const LEVELS = [
   // 0
-  { msg: 'Welcome to PrograMaze!<br><br>' +
+  { msg: 'Welcome to <big>PrograMaze</big>!<br><br>' +
          'The object of each level is to move the ' +
          '<span style="color: ' + GUY_COLOR + '">orange</span> box to the ' +
-         '<span style ="color: ' + GOAL_COLOR + '">blue</span> goal.' },
+         '<span style ="color: ' + GOAL_COLOR + '">blue</span> goal.<br><br>' +
+         'Click or tap to begin'},
   // 1
   {
     msg: 'Click Step (<canvas id="stepIcon"></canvas>) ' +
@@ -865,7 +866,9 @@ const LEVELS = [
     goalAt: {i: 6, j: 0},
   },
   // 11
-  {msg: 'You win!<br>Thanks for playing!'}
+  {msg: 'You win!<br>Thanks for playing!<br><br>' +
+        'Designed and programmed by ' +
+        '<a href="https://gashlin.net">Adam Gashlin</a>'}
 ];
 
 const RESET_MESSAGE = 'Click Reset (<canvas id="resetIcon"></canvas>) '+
