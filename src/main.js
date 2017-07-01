@@ -26,9 +26,9 @@ let LANDSCAPE = true;
 const PAD_X = 10;
 const PAD_Y = 10;
 
-const LANDSCAPE_CONTROLS_X = 20;
-const LANDSCAPE_CONTROLS_Y = 20;
-const PORTRAIT_CONTROLS_X = 35;
+const LANDSCAPE_CONTROLS_X = 480;
+const LANDSCAPE_CONTROLS_Y = 10;
+const PORTRAIT_CONTROLS_X = 250;
 const PORTRAIT_CONTROLS_Y = 20;
 let CONTROLS_X = 10;
 let CONTROLS_Y = 10;
@@ -41,10 +41,17 @@ const CONTROL_PAD_Y = 25;
 const ICON_W = 10;
 const ICON_H = 20;
 
-const LANDSCAPE_GRID_X = 200;
+const LANDSCAPE_LEGEND_X = LANDSCAPE_CONTROLS_X - 20;
+const LANDSCAPE_LEGEND_Y = LANDSCAPE_CONTROLS_Y + CONTROL_PAD_Y * 2+ CONTROL_H * 2;
+const PORTRAIT_LEGEND_X = 20;
+const PORTRAIT_LEGEND_Y = -2;
+let LEGEND_X = 10;
+let LEGEND_Y = 10;
+
+const LANDSCAPE_GRID_X = 10;
 const LANDSCAPE_GRID_Y = 10;
 const PORTRAIT_GRID_X = 10;
-const PORTRAIT_GRID_Y = 220;
+const PORTRAIT_GRID_Y = 230;
 let GRID_X = 10;
 let GRID_Y = 10;
 
@@ -71,15 +78,21 @@ const setSize = function () {
   if (LANDSCAPE) {
     CONTROLS_X = LANDSCAPE_CONTROLS_X;
     CONTROLS_Y = LANDSCAPE_CONTROLS_Y;
+    LEGEND_X = LANDSCAPE_LEGEND_X;
+    LEGEND_Y = LANDSCAPE_LEGEND_Y;
     GRID_X = LANDSCAPE_GRID_X;
     GRID_Y = LANDSCAPE_GRID_Y;
   } else {
     CONTROLS_X = PORTRAIT_CONTROLS_X;
     CONTROLS_Y = PORTRAIT_CONTROLS_Y;
+    LEGEND_X = PORTRAIT_LEGEND_X;
+    LEGEND_Y = PORTRAIT_LEGEND_Y;
     GRID_X = PORTRAIT_GRID_X;
     GRID_Y = PORTRAIT_GRID_Y;
   }
-  const desiredWidth = GRID_X + GRID_W * GRID_COLS + PAD_X;
+  const desiredWidth = LANDSCAPE ?
+    LANDSCAPE_LEGEND_X + GRID_W * 3.5 + PAD_X :
+    GRID_X + GRID_W * GRID_COLS + PAD_X;
   const desiredHeight = GRID_Y + GRID_H * GRID_ROWS + PAD_Y;
 
   let width = Math.min(window.innerWidth, desiredWidth);
@@ -321,6 +334,12 @@ const drawControls = function (showPlay, showReset, showStep, playPressed, stepP
   let y = CONTROLS_Y;
   // step button
 
+  if (showReset) {
+    drawReset(ctx, x, y, CONTROL_W, CONTROL_H);
+  }
+
+  x += CONTROL_W + CONTROL_PAD_X;
+
   if (showStep) {
     drawStep(ctx, x, y, CONTROL_W, CONTROL_H);
     if (stepPressed) {
@@ -339,14 +358,6 @@ const drawControls = function (showPlay, showReset, showStep, playPressed, stepP
       ctx.lineWidth = 5;
       ctx.stroke();
     }
-  }
-
-  y = CONTROLS_Y;
-  x += CONTROL_W + CONTROL_PAD_X;
-
-
-  if (showReset) {
-    drawReset(ctx, x, y, CONTROL_W, CONTROL_H);
   }
 
 };
@@ -368,13 +379,8 @@ const drawLegend = function (limited, t) {
   let initX;
   let initY;
 
-  if (LANDSCAPE) {
-    initX = 2 ;
-    initY = LANDSCAPE_CONTROLS_Y + CONTROL_PAD_Y + CONTROL_H * 2;
-  } else {
-    initX = GRID_X + GRID_W * 4;
-    initY = -2;
-  }
+  initX = LEGEND_X;
+  initY = LEGEND_Y;
 
   let x = initX;
   let y = initY;
@@ -762,7 +768,8 @@ const handleClick = function ({x: pageX, y: pageY}) {
           {i: Math.floor((x - GRID_X) / GRID_W),
            j: Math.floor((y - GRID_Y) / GRID_H)});
   } else if (!LEVEL_STATE.playActive && LEVEL_STATE.guyAnim.length === 0 &&
-             x >= CONTROLS_X && x < CONTROLS_X + CONTROL_W &&
+             x >= CONTROLS_X + CONTROL_W &&
+             x < CONTROLS_X + CONTROL_PAD_X + CONTROL_W * 2 &&
              y >= CONTROLS_Y && y < CONTROLS_Y + CONTROL_H) {
     if (LEVEL_STATE.progress === 0) {
       // kickoff
@@ -779,9 +786,10 @@ const handleClick = function ({x: pageX, y: pageY}) {
     }
   } else if (!LEVEL_STATE.noPlay &&
              !LEVEL_STATE.playActive && !LEVEL_STATE.dead &&
-             y >= CONTROLS_Y + CONTROL_H + CONTROL_PAD_Y &&
-             y < CONTROLS_Y + 2 * CONTROL_H + CONTROL_PAD_Y &&
-             x >= CONTROLS_X && x < CONTROLS_X + CONTROL_W) {
+             x >= CONTROLS_X + CONTROL_W &&
+             x < CONTROLS_X + CONTROL_PAD_X + CONTROL_W * 2 &&
+             y >= CONTROLS_Y + CONTROL_H &&
+             y < CONTROLS_Y + 2 * CONTROL_H + CONTROL_PAD_Y) {
     LEVEL_STATE.playActive = true;
 
     if (LEVEL_STATE.grid[LEVEL_STATE.guyAt.j][LEVEL_STATE.guyAt.i] === 1) {
@@ -794,8 +802,8 @@ const handleClick = function ({x: pageX, y: pageY}) {
 
   } else if ((LEVEL_STATE.playActive || LEVEL_STATE.stepActive || LEVEL_STATE.dead) &&
              y >= CONTROLS_Y && y < CONTROLS_Y + CONTROL_H &&
-             x >= CONTROLS_X + CONTROL_PAD_X + CONTROL_W &&
-             x < CONTROLS_X + CONTROL_PAD_X + CONTROL_W * 2) {
+             x >= CONTROLS_X &&
+             x < CONTROLS_X + CONTROL_W * 2) {
     resetLevel(LEVEL_STATE);
   }
 
