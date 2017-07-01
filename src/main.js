@@ -614,7 +614,7 @@ const draw = function (t) {
       curProgressFrame.offsetSet = true;
     }
 
-    if (curProgressFrame.t > t) {
+    if (t < curProgressFrame.t) {
       break;
     }
 
@@ -626,8 +626,8 @@ const draw = function (t) {
     curProgressFrame = LEVEL_STATE.progressAnim[0];
   }
 
-  if (curProgressFrame && LEVEL_STATE.progressAnim.length === 0) {
-    progress = curProgressFrame.x;
+  if (!curProgressFrame && prevProgressFrame) {
+    progress = prevProgressFrame.x;
   } else if (curProgressFrame && prevProgressFrame) {
     progress = lerp(prevProgressFrame.x, curProgressFrame.x,
       (t - prevProgressFrame.t) / (curProgressFrame.t - prevProgressFrame.t));
@@ -660,7 +660,7 @@ const draw = function (t) {
       curAnimFrame.offsetSet = true;
     }
 
-    if (curAnimFrame.t > t) {
+    if (t < curAnimFrame.t) {
       break;
     }
 
@@ -672,9 +672,9 @@ const draw = function (t) {
     curAnimFrame = LEVEL_STATE.guyAnim[0];
   }
 
-  if (curAnimFrame && LEVEL_STATE.guyAnim.length === 0) {
+  if (!curAnimFrame && prevAnimFrame) {
     // past the last keyframe, just use it directly
-    guy = {i: curAnimFrame.i, j: curAnimFrame.j, w: curAnimFrame.w, h: curAnimFrame.h};
+    guy = {i: prevAnimFrame.i, j: prevAnimFrame.j, w: prevAnimFrame.w, h: prevAnimFrame.h};
   } else if (curAnimFrame && prevAnimFrame) {
     // two keyframes to lerp between
     let tt = (t - prevAnimFrame.t) / ( curAnimFrame.t - prevAnimFrame.t);
