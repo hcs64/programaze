@@ -153,6 +153,19 @@ elem.addEventListener('mousedown', handleMouseDown, false);
 elem.addEventListener('mouseup', handleMouseUp, false);
 elem.addEventListener('mouseleave', handleMouseOut, false);
 
-return curTouches;
+const unregister = function () {
+  elem.removeEventListener('touchstart', handleTouchStart, false);
+  elem.removeEventListener('touchend', handleTouchEnd, false);
+  elem.removeEventListener('touchcancel', handleTouchCancel, false);
+
+  elem.removeEventListener('mousedown', handleMouseDown, false);
+  elem.removeEventListener('mouseup', handleMouseUp, false);
+  elem.removeEventListener('mouseleave', handleMouseOut, false);
+};
+
+return {
+  curTouches,
+  unregister
+};
 
 };
