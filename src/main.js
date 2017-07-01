@@ -778,7 +778,7 @@ const handleClick = function ({x: pageX, y: pageY}) {
       runCommand(false);
     }
   } else if (!LEVEL_STATE.noPlay &&
-             !LEVEL_STATE.playActive &&
+             !LEVEL_STATE.playActive && !LEVEL_STATE.dead &&
              y >= CONTROLS_Y + CONTROL_H + CONTROL_PAD_Y &&
              y < CONTROLS_Y + 2 * CONTROL_H + CONTROL_PAD_Y &&
              x >= CONTROLS_X && x < CONTROLS_X + CONTROL_W) {
