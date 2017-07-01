@@ -351,10 +351,23 @@ const drawControls = function (showPlay, showReset, showStep, playPressed, stepP
 
 };
 
+const drawLegendBGTile = function ({x, y}, t) {
+  if (t === 0) {
+    return;
+  }
+
+  const vN = Math.floor(lerp(0, 64, t));
+  const vNRGB = `rgb(${vN},${vN},${vN})`;
+
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = vNRGB;
+  ctx.strokeRect(x - .5, y - .5, GRID_W, GRID_H);
+}
+
 const drawLegend = function (limited, t) {
   let initX;
   let initY;
-  
+
   if (LANDSCAPE) {
     initX = 2 ;
     initY = LANDSCAPE_CONTROLS_Y + CONTROL_PAD_Y + CONTROL_H * 2;
@@ -367,8 +380,10 @@ const drawLegend = function (limited, t) {
   let y = initY;
 
   ctx.lineWidth = 1;
+  drawLegendBGTile({x,y}, t);
   draw0({x, y}, PAIR_OFFSET, BG_COLOR, t);
   x += GRID_W;
+  drawLegendBGTile({x,y}, t);
   draw0({x, y}, -PAIR_OFFSET, BG_COLOR, t);
   x += GRID_W;
   drawEq({x, y});
@@ -388,6 +403,7 @@ const drawLegend = function (limited, t) {
 
   if (!limited) {
     ctx.lineWidth = 1;
+    drawLegendBGTile({x,y}, t);
     draw0({x, y}, PAIR_OFFSET, BG_COLOR, t);
     x += GRID_W;
     draw1({x, y}, -PAIR_OFFSET, t);
@@ -409,6 +425,7 @@ const drawLegend = function (limited, t) {
     ctx.lineWidth = 1;
     draw1({x, y}, PAIR_OFFSET, t);
     x += GRID_W;
+    drawLegendBGTile({x,y}, t);
     draw0({x, y}, -PAIR_OFFSET, BG_COLOR, t);
     x += GRID_W
       drawEq({x, y});
