@@ -486,6 +486,23 @@ const extendRectInDir = function ({x, y, w, h}, {dx, dy}) {
   return {x, y, w, h};
 };
 
+const shortenRectInDir = function ({x, y, w, h}, {dx, dy}) {
+  if (dx < 0) {
+    w += dx;
+  } else {
+    w -= dx;
+    x += dx;
+  }
+  if (dy < 0) {
+    h += dy;
+  } else {
+    h -= dy;
+    y += dy;
+  }
+
+  return {x, y, w, h};
+};
+
 const animateMove = function (anim, from, to, auto) {
   const cb = auto ? autoRunCommand : checkForWin;
 
@@ -514,13 +531,18 @@ const animateBump = function (anim, from, to) {
   const dj = to.j - from.j;
 
   const {x: midI, y: midJ, w: midW, h: midH} =
-    extendRectInDir({x: from.i, y: from.j, w: 1, h: 1}, {dx: di * amt, dy: dj * amt});
+    extendRectInDir(
+      {x: from.i, y: from.j, w: 1, h: 1}, {dx: di * amt, dy: dj * amt});
+
+  let {x: squashI, y: squashJ, w: squashW, h: squashH} =
+    shortenRectInDir(
+      {x: midI, y: midJ, w: midW, h: midH}, {dx: di * 0.2, dy: dj * 0.2});
   const sq = 1/0.8;
   const sq2 = (sq - 1)/2
-  const squashW = di === 0 ? sq : 1/sq;
-  const squashH = di === 0 ? 1/sq : sq;
-  const squashI = midI + dj * sq2;
-  const squashJ = midJ + di * sq2;
+  squashW *= di === 0 ? sq : 1;
+  squashH *= di === 0 ? 1 : sq;
+  squashI -= Math.abs(dj) * sq2;
+  squashJ -= Math.abs(di) * sq2;
 
   anim.push(
     {t: 0, i: from.i, j: from.j, w: 1, h: 1},
@@ -733,16 +755,16 @@ const LEVELS = [
   },
   // 2
   { msg: 'Toggle the bits of the program by clicking them.',
-    grid: [[0,0,0,0,0,0,0,0],
-           [1,1,1,1,0,0,0,0],
-           [0,0,0,1,0,1,1,1],
-           [1,1,1,1,0,1,0,0],
-           [0,0,0,0,0,1,1,1],
+    grid: [[1,1,1,1,1,1,1,1],
+           [0,0,0,0,0,0,0,0],
+           [0,0,0,0,0,0,0,0],
+           [0,0,0,0,0,0,0,0],
+           [1,1,1,1,1,1,1,1],
            [0,0,0,0,0,0,0,0],
            [0,0,0,0,0,0,0,0],
            [0,0,0,0,0,0,0,0]],
-    guyAt: {i: 2, j: 2},
-    goalAt: {i: 6, j: 3},
+    guyAt: {i: 5, j: 1},
+    goalAt: {i: 0, j: 5},
     noPlay: true
   },
   // 3
