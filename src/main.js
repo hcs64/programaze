@@ -26,16 +26,17 @@ let LANDSCAPE = true;
 const PAD_X = 10;
 const PAD_Y = 10;
 
-const LANDSCAPE_CONTROLS_X = 35;
+const LANDSCAPE_CONTROLS_X = 20;
 const LANDSCAPE_CONTROLS_Y = 20;
-const PORTRAIT_CONTROLS_X = 70;
+const PORTRAIT_CONTROLS_X = 35;
 const PORTRAIT_CONTROLS_Y = 20;
 let CONTROLS_X = 10;
 let CONTROLS_Y = 10;
 
 const CONTROL_W = 48;
 const CONTROL_H = 80;
-const CONTROL_PAD = 25;
+const CONTROL_PAD_X = 50;
+const CONTROL_PAD_Y = 25;
 
 const ICON_W = 10;
 const ICON_H = 20;
@@ -327,7 +328,7 @@ const drawControls = function (showPlay, showReset, showStep, playPressed, stepP
     }
   }
 
-  y += CONTROL_H + CONTROL_PAD;
+  y += CONTROL_H + CONTROL_PAD_Y;
 
   if (showPlay) {
     drawPlay(ctx, x, y, CONTROL_W, CONTROL_H);
@@ -339,7 +340,7 @@ const drawControls = function (showPlay, showReset, showStep, playPressed, stepP
   }
 
   y = CONTROLS_Y;
-  x += CONTROL_W + CONTROL_PAD;
+  x += CONTROL_W + CONTROL_PAD_X;
 
 
   if (showReset) {
@@ -354,7 +355,7 @@ const drawLegend = function (limited, t) {
   
   if (LANDSCAPE) {
     initX = 2 ;
-    initY = LANDSCAPE_CONTROLS_Y + CONTROL_PAD + CONTROL_H * 2;
+    initY = LANDSCAPE_CONTROLS_Y + CONTROL_PAD_Y + CONTROL_H * 2;
   } else {
     initX = GRID_X + GRID_W * 4;
     initY = -2;
@@ -462,6 +463,8 @@ const animateProgress = function (state, progress, cb) {
     state.progressAnim.push(
       {t: 0, x: state.progress}, {t: GRID_ANIM_MS, x: progress, cb});
     state.progress = progress;
+  } else if (cb) {
+    cb();
   }
 };
 
@@ -686,24 +689,24 @@ const handleClick = function ({x: pageX, y: pageY}) {
       runCommand(false);
     }
   } else if (!LEVEL_STATE.noPlay &&
-             !LEVEL_STATE.playActive && !LEVEL_STATE.stepActive &&
-             y >= CONTROLS_Y + CONTROL_H + CONTROL_PAD &&
-             y < CONTROLS_Y + 2 * CONTROL_H + CONTROL_PAD &&
+             !LEVEL_STATE.playActive &&
+             y >= CONTROLS_Y + CONTROL_H + CONTROL_PAD_Y &&
+             y < CONTROLS_Y + 2 * CONTROL_H + CONTROL_PAD_Y &&
              x >= CONTROLS_X && x < CONTROLS_X + CONTROL_W) {
     LEVEL_STATE.playActive = true;
 
-      if (LEVEL_STATE.grid[LEVEL_STATE.guyAt.j][LEVEL_STATE.guyAt.i] === 1) {
-        animateProgress(LEVEL_STATE, 1);
-        LEVEL_STATE.dead = true;
-        showMessage(RESET_MESSAGE, false);
-      } else {
-        animateProgress(LEVEL_STATE, 1, function (t) { autoRunCommand(t); });
-      } 
+    if (LEVEL_STATE.grid[LEVEL_STATE.guyAt.j][LEVEL_STATE.guyAt.i] === 1) {
+      animateProgress(LEVEL_STATE, 1);
+      LEVEL_STATE.dead = true;
+      showMessage(RESET_MESSAGE, false);
+    } else {
+      animateProgress(LEVEL_STATE, 1, function (t) { autoRunCommand(t); });
+    }
 
   } else if ((LEVEL_STATE.playActive || LEVEL_STATE.stepActive || LEVEL_STATE.dead) &&
              y >= CONTROLS_Y && y < CONTROLS_Y + CONTROL_H &&
-             x >= CONTROLS_X + CONTROL_PAD + CONTROL_W &&
-             x < CONTROLS_X + CONTROL_PAD + CONTROL_W * 2) {
+             x >= CONTROLS_X + CONTROL_PAD_X + CONTROL_W &&
+             x < CONTROLS_X + CONTROL_PAD_X + CONTROL_W * 2) {
     resetLevel(LEVEL_STATE);
   }
 
