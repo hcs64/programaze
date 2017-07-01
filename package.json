@@ -1,0 +1,16 @@
+{
+  "name": "programaze",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "babel src -d dist && cp -v src/index.html dist/"
+  },
+  "files": [
+    "main.js",
+    "anim.js",
+    "touchy.js"
+  ],
+  "devDependencies": {
+    "babel-cli": "^6.24.1",
+    "babel-preset-env": "^1.5.2"
+  }
+}
