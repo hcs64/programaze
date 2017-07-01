@@ -866,9 +866,10 @@ const LEVELS = [
     goalAt: {i: 6, j: 0},
   },
   // 11
-  {msg: 'You win!<br>Thanks for playing!<br><br>' +
-        'Designed and programmed by ' +
-        '<a href="https://gashlin.net">Adam Gashlin</a>'}
+  {msg: 'You win!<br><br>Thanks for playing!<br><br>' +
+        '<small>Designed by ' +
+        '<a href="https://gashlin.net" style="color: white">Adam&nbsp;Gashlin</a>' +
+        '</small>'}
 ];
 
 const RESET_MESSAGE = 'Click Reset (<canvas id="resetIcon"></canvas>) '+
@@ -1035,6 +1036,10 @@ const startLevel = function () {
   } else {
     LEVEL_STATE = null;
   }
+
+  if (CUR_LEVEL === LEVELS.length - 1) {
+    TOUCHY.unregister();
+  }
 };
 
 
@@ -1050,14 +1055,15 @@ const winLevel = function () {
 
 // main code starts here
 
+window.addEventListener('resize', handleResize);
+
+const TOUCHY = GET_TOUCHY(window, {
+  touchEnd: handleClick
+});
+
+
 setSize();
 
 startLevel();
-
-window.addEventListener('resize', handleResize);
-
-GET_TOUCHY(window, {
-  touchEnd: handleClick
-});
 
 })();
