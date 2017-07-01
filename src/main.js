@@ -574,7 +574,7 @@ const draw = function (t) {
   }
 
   if (LEVEL_SWITCH) {
-    ctx.translate(cnv.width * (1 - (t - LEVEL_SWITCH.start) / LEVEL_SWITCH_MS), 0);
+    ctx.translate(cnv.width / DPR * (1 - (t - LEVEL_SWITCH.start) / LEVEL_SWITCH_MS), 0);
     requestDraw();
   }
 
