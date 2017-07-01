@@ -50,9 +50,12 @@ let GRID_Y = 10;
 
 const GRID_ANIM_MS = 150;
 const MOVE_ANIM_MS = 250;
+const WIN_DELAY_MS = 50;
+const LEVEL_SWITCH_MS = 500;
 const GUY_SCALE = 0.8;
 
 let LEVEL_STATE = null;
+let LEVEL_SWITCH = null;
 
 const cnv = document.getElementById('cnv');
 const ctx = cnv.getContext('2d');
@@ -60,7 +63,6 @@ const ctx = cnv.getContext('2d');
 let DPR = 1;
 if (window.devicePixelRatio) {
   DPR = window.devicePixelRatio;
-
 }
 
 
@@ -441,14 +443,6 @@ const drawLegend = function (limited, t) {
   }
 };
 
-let DRAW_IN_FLIGHT = false;
-const requestDraw = function () {
-  if (!DRAW_IN_FLIGHT) {
-    window.requestAnimationFrame(draw);
-    DRAW_IN_FLIGHT = true;
-  }
-};
-
 const toggleBit = function (state, {i, j}) {
   if (state.grid[j][i] === 1) {
     state.grid[j][i] = 0;
@@ -553,10 +547,35 @@ const animateBump = function (anim, from, to) {
 
 };
 
+let DRAW_IN_FLIGHT = false;
+const requestDraw = function () {
+  if (!DRAW_IN_FLIGHT) {
+    window.requestAnimationFrame(draw);
+    DRAW_IN_FLIGHT = true;
+  }
+};
+
 const draw = function (t) {
   DRAW_IN_FLIGHT = false;
   if (!LEVEL_STATE) {
     return;
+  }
+
+  ctx.save();
+
+  if (LEVEL_SWITCH) {
+    if (typeof LEVEL_SWITCH.start !== 'number') {
+      LEVEL_SWITCH.start = t;
+    }
+
+    if (t - LEVEL_SWITCH.start > LEVEL_SWITCH_MS) {
+      LEVEL_SWITCH = null;
+    }
+  }
+
+  if (LEVEL_SWITCH) {
+    ctx.translate(cnv.width * (1 - (t - LEVEL_SWITCH.start) / LEVEL_SWITCH_MS), 0);
+    requestDraw();
   }
 
   ctx.clearRect(0, 0, cnv.width, cnv.height);
@@ -676,11 +695,21 @@ const draw = function (t) {
     LEVEL_STATE.playActive, LEVEL_STATE.stepActive);
 
   drawLegend(LEVEL_STATE.limitedLegend, progress);
+
+  ctx.restore();
 };
 
 const handleClick = function ({x: pageX, y: pageY}) {
   const x = pageX/RESIZE_SCALE;
   const y = pageY/RESIZE_SCALE;
+
+  if (CUR_LEVEL === LEVELS.length - 1) {
+    return;
+  }
+
+  if (LEVEL_SWITCH) {
+    return;
+  }
 
   if (!LEVEL_STATE || !LEVEL_STATE.guyAt) {
     hideMessage();
@@ -694,7 +723,7 @@ const handleClick = function ({x: pageX, y: pageY}) {
     toggleBit(LEVEL_STATE,
           {i: Math.floor((x - GRID_X) / GRID_W),
            j: Math.floor((y - GRID_Y) / GRID_H)});
-  } else if (!LEVEL_STATE.playActive &&
+  } else if (!LEVEL_STATE.playActive && LEVEL_STATE.guyAnim.length === 0 &&
              x >= CONTROLS_X && x < CONTROLS_X + CONTROL_W &&
              y >= CONTROLS_Y && y < CONTROLS_Y + CONTROL_H) {
     if (LEVEL_STATE.progress === 0) {
@@ -938,7 +967,7 @@ const runCommand = function (auto) {
 const checkForWin = function () {
   const ls = LEVEL_STATE;
   if (ls.guyAt.i === ls.goalAt.i && ls.guyAt.j === ls.goalAt.j) {
-    winLevel();
+    window.setTimeout(winLevel, WIN_DELAY_MS);
     return true;
   }
   return false;
@@ -970,6 +999,9 @@ const startLevel = function () {
 
 const winLevel = function () {
   if (CUR_LEVEL < LEVELS.length - 1) {
+    if (LEVELS[CUR_LEVEL].guyAt && LEVELS[CUR_LEVEL + 1].guyAt) {
+      LEVEL_SWITCH = {};
+    }
     CUR_LEVEL += 1;
     startLevel();
   }
