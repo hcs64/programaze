@@ -688,7 +688,7 @@ const handleClick = function ({x: pageX, y: pageY}) {
     return;
   }
 
-  if (!LEVEL_STATE.noEdit && !LEVEL_STATE.stepActive &&
+  if (!LEVEL_STATE.noEdit && LEVEL_STATE.progress === 0 &&
       x >= GRID_X && x < GRID_X + GRID_W * GRID_COLS &&
       y >= GRID_Y && y < GRID_Y * GRID_H * GRID_ROWS) {
     toggleBit(LEVEL_STATE,
