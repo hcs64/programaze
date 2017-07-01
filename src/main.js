@@ -497,6 +497,23 @@ const shortenRectInDir = function ({x, y, w, h}, {dx, dy}) {
   return {x, y, w, h};
 };
 
+const quadIn = function (t) {
+  return (t*t);
+};
+
+const quadOut = function (t) {
+  return t*(2-t);
+};
+
+const quadInOut = function (t) {
+  if (t < 0.5) {
+    return 2*t*t;
+  } else {
+    return -1 + 2*t*(2 - t);
+  }
+};
+
+
 const animateMove = function (anim, from, to, auto) {
   const cb = auto ? autoRunCommand : checkForWin;
 
@@ -514,7 +531,7 @@ const animateMove = function (anim, from, to, auto) {
   anim.push(
     {t: 0, i: from.i, j: from.j, w: 1, h: 1},
     {t: MOVE_ANIM_MS * 0.5, i: midI, j: midJ, w: midW, h: midH},
-    {t: MOVE_ANIM_MS * 0.5, i: to.i, j: to.j, w: 1, h: 1, cb},
+    {t: MOVE_ANIM_MS * 0.5, i: to.i, j: to.j, w: 1, h: 1, f: quadInOut, cb},
   );
 };
 
@@ -660,7 +677,11 @@ const draw = function (t) {
     guy = {i: curAnimFrame.i, j: curAnimFrame.j, w: curAnimFrame.w, h: curAnimFrame.h};
   } else if (curAnimFrame && prevAnimFrame) {
     // two keyframes to lerp between
-    const tt = (t - prevAnimFrame.t) / ( curAnimFrame.t - prevAnimFrame.t);
+    let tt = (t - prevAnimFrame.t) / ( curAnimFrame.t - prevAnimFrame.t);
+    if (curAnimFrame.f) {
+      tt = curAnimFrame.f(tt);
+    }
+
     guy = {
       i: lerp(prevAnimFrame.i, curAnimFrame.i, tt),
       j: lerp(prevAnimFrame.j, curAnimFrame.j, tt),
