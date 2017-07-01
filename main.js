@@ -245,12 +245,12 @@ const drawBGGrid = function (grid, t) {
   }
 };
 
-const drawGuy = function ({i, j}, t, stretchX) {
+const drawGuy = function ({i, j, w, h}, t) {
   const scale = lerp(1, GUY_SCALE, t);
   ctx.fillStyle = GUY_COLOR;
-  ctx.fillRect(GRID_X + GRID_W * i + GRID_W * (1 - scale) / 2 * stretchX,
-               GRID_Y + GRID_H * j + GRID_H * (1 - scale) / 2 / stretchX,
-               GRID_W * scale-1, GRID_H*scale-1);
+  ctx.fillRect(GRID_X + GRID_W * i + GRID_W * w * (1 - scale) / 2,
+               GRID_Y + GRID_H * j + GRID_H * h * (1 - scale) / 2,
+               GRID_W * w * scale - 1, GRID_H * h * scale - 1);
 };
 
 const drawGoal = function ({i, j}) {
@@ -457,23 +457,6 @@ const toggleBit = function (state, {i, j}) {
   requestDraw();
 };
 
-/*
-let toggle = true;
-const flipToggle = function (t) {
-  if (!transformAnim) {
-    //stretchAnim = move.setupAnim(stretch, t, 0);
-    //crawlAnim = move.setupAnim(crawl, t, 0);
-    toggle = !toggle;
-    if (toggle) {
-      transformAnim = move.setupAnim(transform10, t, 0);
-    } else {
-      transformAnim = move.setupAnim(transform01, t, 0);
-    }
-  }
-  requestDraw();
-};
-*/
-
 const animateProgress = function (state, progress, cb) {
   if (state.progress !== progress) {
     state.progressAnim.push(
@@ -482,28 +465,66 @@ const animateProgress = function (state, progress, cb) {
   }
 };
 
-const animateMove = function (anim, from, to, auto, t) {
-  const cb = auto ? autoRunCommand : checkForWin;
-  const offset = auto ? t : 0;
-  anim.push(
-    {t: offset, timeOffset: auto,
-      stretch: 1, crawlI: from.i - to.i, crawlJ: from.j - to.j},
-    {t: MOVE_ANIM_MS + offset, timeOffset: auto,
-      stretch: 1, crawlI: 0, crawlJ: 0, cb});
+
+const extendRectInDir = function ({x, y, w, h}, {dx, dy}) {
+  if (dx < 0) {
+    w -= dx;
+    x += dx;
+  } else {
+    w += dx;
+  }
+  if (dy < 0) {
+    h -= dy;
+    y += dy;
+  } else {
+    h += dy;
+  }
+
+  return {x, y, w, h};
 };
 
-const animateBump = function (anim, from, to, auto, t) {
-  // how far it gets before the bump
-  const offset = auto ? t : 0;
-  const amt = (1 - GUY_SCALE) / 2;
-  const dirI = to.i - from.i;
-  const dirJ = to.j - from.j;
+const animateMove = function (anim, from, to, auto) {
+  const cb = auto ? autoRunCommand : checkForWin;
+
+  const di = to.i - from.i;
+  const dj = to.j - from.j;
+
+  const squashW = 1 / (1 + Math.abs(dj)/2);
+  const squashH = 1 / (1 + Math.abs(di)/2);
+  const squashI = from.i + (1 - squashW) / 2;
+  const squashJ = from.j + (1 - squashH) / 2;
+
+  const {x: midI, y: midJ, w: midW, h: midH} =
+    extendRectInDir({x: squashI, y: squashJ, w: squashW, h: squashH}, {dx: di, dy: dj});
+
   anim.push(
-    {t: offset, timeOffset: auto, stretch: 1, crawlI: 0, crawlJ: 0},
-    {t: MOVE_ANIM_MS * amt + offset, timeOffset: auto,
-      stretch: 1, crawlI: dirI * amt, crawlJ: dirJ * amt},
-    {t: MOVE_ANIM_MS * amt * 5 + offset, timeOffset: auto,
-      stretch: 1, crawlI: 0, crawlJ: 0});
+    {t: 0, i: from.i, j: from.j, w: 1, h: 1},
+    {t: MOVE_ANIM_MS * 0.5, i: midI, j: midJ, w: midW, h: midH},
+    {t: MOVE_ANIM_MS * 0.5, i: to.i, j: to.j, w: 1, h: 1, cb},
+  );
+};
+
+const animateBump = function (anim, from, to) {
+  // how far it gets before the bump
+  const amt = (1 - GUY_SCALE) / 2;
+  const di = to.i - from.i;
+  const dj = to.j - from.j;
+
+  const {x: midI, y: midJ, w: midW, h: midH} =
+    extendRectInDir({x: from.i, y: from.j, w: 1, h: 1}, {dx: di * amt, dy: dj * amt});
+  const sq = 1/0.8;
+  const sq2 = (sq - 1)/2
+  const squashW = di === 0 ? sq : 1/sq;
+  const squashH = di === 0 ? 1/sq : sq;
+  const squashI = midI + dj * sq2;
+  const squashJ = midJ + di * sq2;
+
+  anim.push(
+    {t: 0, i: from.i, j: from.j, w: 1, h: 1},
+    {t: MOVE_ANIM_MS * amt, i: midI, j: midJ, w: midW, h: midH},
+    {t: MOVE_ANIM_MS * amt, i: squashI, j: squashJ, w: squashW, h: squashH},
+    {t: MOVE_ANIM_MS * amt * 3, i: from.i, j: from.j, w: 1, h: 1},
+  );
 
 };
 
@@ -521,16 +542,21 @@ const draw = function (t) {
 
   let progress = LEVEL_STATE.progress;
 
-  LEVEL_STATE.progressAnim.forEach(function (f) {
-    if (!f.timeOffset) {
-      f.t += t;
-      f.timeOffset = true;
-    }
-  });
-
   let curProgressFrame = LEVEL_STATE.progressAnim[0], prevProgressFrame;
-  while (LEVEL_STATE.progressAnim.length > 0 && curProgressFrame.timeOffset && 
-         curProgressFrame.t <= t) {
+  while (LEVEL_STATE.progressAnim.length > 0) {
+    if (!curProgressFrame.offsetSet) {
+      if (prevProgressFrame) {
+        curProgressFrame.t += prevProgressFrame.t;
+      } else {
+        curProgressFrame.t += t;
+      }
+      curProgressFrame.offsetSet = true;
+    }
+
+    if (curProgressFrame.t > t) {
+      break;
+    }
+
     if (curProgressFrame.cb) {
       curProgressFrame.cb(t);
       curProgressFrame.cb = null;
@@ -558,20 +584,25 @@ const draw = function (t) {
 
   drawGoal(LEVEL_STATE.goalAt);
 
-  let stretchX = 1;
-  let crawlI = 0;
-  let crawlJ = 0;
-
-  LEVEL_STATE.guyAnim.forEach(function (f) {
-    if (!f.timeOffset) {
-      f.t += t;
-      f.timeOffset = true;
-    }
-  });
+  let guy = {i: LEVEL_STATE.guyAt.i, j: LEVEL_STATE.guyAt.j, w: 1, h: 1};
 
   let curAnimFrame = LEVEL_STATE.guyAnim[0], prevAnimFrame;
-  while (LEVEL_STATE.guyAnim.length > 0 && curAnimFrame.timeOffset &&
-         curAnimFrame.t <= t) {
+  while (LEVEL_STATE.guyAnim.length > 0) {
+    if (!curAnimFrame.offsetSet) {
+      if (prevAnimFrame) {
+        // time is relative to previous frame
+        curAnimFrame.t += prevAnimFrame.t;
+      } else {
+        // otherwise, time is relative to now
+        curAnimFrame.t += t;
+      }
+      curAnimFrame.offsetSet = true;
+    }
+
+    if (curAnimFrame.t > t) {
+      break;
+    }
+
     if (curAnimFrame.cb) {
       curAnimFrame.cb(t);
       curAnimFrame.cb = null;
@@ -582,15 +613,16 @@ const draw = function (t) {
 
   if (curAnimFrame && LEVEL_STATE.guyAnim.length === 0) {
     // past the last keyframe, just use it directly
-    stretchX = curAnimFrame.stretch;
-    crawlI = curAnimFrame.crawlI;
-    crawlJ = curAnimFrame.crawlJ;
+    guy = {i: curAnimFrame.i, j: curAnimFrame.j, w: curAnimFrame.w, h: curAnimFrame.h};
   } else if (curAnimFrame && prevAnimFrame) {
     // two keyframes to lerp between
     const tt = (t - prevAnimFrame.t) / ( curAnimFrame.t - prevAnimFrame.t);
-    stretchX = lerp(prevAnimFrame.stretch, curAnimFrame.stretch, tt);
-    crawlI = lerp(prevAnimFrame.crawlI, curAnimFrame.crawlI, tt);
-    crawlJ = lerp(prevAnimFrame.crawlJ, curAnimFrame.crawlJ, tt);
+    guy = {
+      i: lerp(prevAnimFrame.i, curAnimFrame.i, tt),
+      j: lerp(prevAnimFrame.j, curAnimFrame.j, tt),
+      w: lerp(prevAnimFrame.w, curAnimFrame.w, tt),
+      h: lerp(prevAnimFrame.h, curAnimFrame.h, tt),
+    };
   }
 
   if (LEVEL_STATE.guyAnim.length > 0) {
@@ -603,8 +635,8 @@ const draw = function (t) {
   }
 
 
-  drawGuy({i: LEVEL_STATE.guyAt.i + crawlI,
-           j: LEVEL_STATE.guyAt.j + crawlJ}, progress, stretchX);
+  drawGuy({i: guy.i, j: guy.j,
+           w: guy.w, h: guy.h }, progress);
 
   drawGrid(LEVEL_STATE.grid, progress,
            LEVEL_STATE.guyAt, LEVEL_STATE.goalAt);
@@ -836,7 +868,7 @@ const checkDest = function ({i, j}) {
          LEVEL_STATE.grid[j][i] !== 1;
 }
 
-const runCommand = function (auto, t) {
+const runCommand = function (auto) {
   const pc = LEVEL_STATE.pc;
   const pcj = Math.floor(pc /4);
   const pci = (pc - pcj * 4) * 2;
@@ -862,7 +894,7 @@ const runCommand = function (auto, t) {
   }
 
   if (!ls.dead && checkDest(dest)) {
-    animateMove(LEVEL_STATE.guyAnim, ls.guyAt, dest, auto, t);
+    animateMove(LEVEL_STATE.guyAnim, ls.guyAt, dest, auto);
     ls.guyAt = dest;
 
     ls.pc += 1;
@@ -871,7 +903,7 @@ const runCommand = function (auto, t) {
     }
   } else {
     LEVEL_STATE.playActive = false;
-    animateBump(LEVEL_STATE.guyAnim, ls.guyAt, dest, auto, t);
+    animateBump(LEVEL_STATE.guyAnim, ls.guyAt, dest);
     showMessage(RESET_MESSAGE, false);
 
     ls.dead = true;
@@ -887,11 +919,11 @@ const checkForWin = function () {
   return false;
 };
 
-const autoRunCommand = function (t) {
+const autoRunCommand = function () {
   if (checkForWin()) {
     return;
   }
-  runCommand(true, t);
+  runCommand(true);
 };
 
 const startLevel = function () {
@@ -919,20 +951,6 @@ const winLevel = function () {
 };
 
 // main code starts here
-
-/*
-const stretch = [{t: 0, x: 1},
-                 {t: 150, x: 2.2, f: MOVE.quadin},
-                 {t: 300, x: 1},];
-const crawl = [{t: 0, x: 0},
-               {t: 150, x: 0, f: MOVE.quadin},
-               {t: 300, x: 1.2}];
-
-const transform01 = [{t: 0, x: 0}, {t: 125, x: 1}];
-const transform10 = [{t: 0, x: 1}, {t: 125, x: 0}];
-
-*/
-let transformAnim;
 
 setSize();
 
