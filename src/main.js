@@ -711,7 +711,7 @@ const handleClick = function ({x: pageX, y: pageY}) {
 };
 
 
-let CUR_LEVEL = 3;
+let CUR_LEVEL = 0;
 const LEVELS = [
   // 0
   { msg: 'Welcome to PrograMaze!<br><br>' +
