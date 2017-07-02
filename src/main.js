@@ -257,8 +257,8 @@ const drawIcon1 = function (ctx, x, y, w, h) {
 
 const drawEq = function ({x, y}) {
   ctx.fillStyle = 'white';
-  ctx.fillRect(x + GRID_W / 5, y + GRID_H * 3 / 12, GRID_W / 2, GRID_W / 6);
-  ctx.fillRect(x + GRID_W / 5, y + GRID_H * 7 / 12, GRID_W / 2, GRID_W / 6);
+  ctx.fillRect(x + GRID_W / 5, y + GRID_H * 4 / 12, GRID_W * 3 / 8, GRID_W / 8);
+  ctx.fillRect(x + GRID_W / 5, y + GRID_H * 7 / 12, GRID_W * 3 / 8, GRID_W / 8);
 };
 
 const drawGrid = function (grid, t, guyAt, goalAt) {
@@ -299,8 +299,8 @@ const drawBGGrid = function (grid, t) {
   const vN = Math.floor(lerp(0, 64, t));
   ctx.strokeStyle = `rgb(${vN},${vN},${vN})`;
 
-  for (let j = 0; j < grid.length; j++) {
-    for (let i = 0; i < grid[j].length; i++) {
+  for (let j = 0; j < GRID_ROWS; j++) {
+    for (let i = 0; i < GRID_COLS; i++) {
       if (grid[j][i] === 0) {
         const x = GRID_X + i * GRID_W;
         const y = GRID_Y + j * GRID_H;
@@ -453,83 +453,93 @@ const drawLegend = function (limited, t) {
   let x = initX;
   let y = initY;
 
+  const w = GRID_W;
+  const h = GRID_H;
+
   ctx.lineWidth = 1;
   drawLegendBGTile({x,y}, t);
   draw0(ctx, {x, y}, PAIR_OFFSET, BG_COLOR, t);
-  x += GRID_W;
+  x += w;
   drawLegendBGTile({x,y}, t);
   draw0(ctx, {x, y}, -PAIR_OFFSET, BG_COLOR, t);
-  x += GRID_W;
+  x += w;
   drawEq({x, y});
   x += EQ_W;
 
   ctx.strokeStyle = 'white';
   ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.moveTo(x + GRID_W * .65, y + GRID_H * .3);
-  ctx.lineTo(x + GRID_W * .35, y + GRID_H * .5);
-  ctx.lineTo(x + GRID_W * .65, y + GRID_H * .7);
+  ctx.moveTo(x + w * .45, y + h * .3);
+  ctx.lineTo(x + w * .25, y + h * .5);
+  ctx.lineTo(x + w * .45, y + h * .7);
+  ctx.moveTo(x + w * .25, y + h * .5);
+  ctx.lineTo(x + w * .7, y + h * .5);
   ctx.stroke();
 
   x = initX;
-  y += GRID_H;
-
+  y += h;
 
   if (!limited) {
     ctx.lineWidth = 1;
     drawLegendBGTile({x,y}, t);
     draw0(ctx, {x, y}, PAIR_OFFSET, BG_COLOR, t);
-    x += GRID_W;
+    x += w;
     draw1(ctx, {x, y}, -PAIR_OFFSET, t);
-    x += GRID_W;
+    x += w;
     drawEq({x, y});
     x += EQ_W;
 
     ctx.strokeStyle = 'white';
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(x + GRID_W * .35, y + GRID_H * .3);
-    ctx.lineTo(x + GRID_W * .65, y + GRID_H * .5);
-    ctx.lineTo(x + GRID_W * .35, y + GRID_H * .7);
+    ctx.moveTo(x + w * .5, y + h * .3);
+    ctx.lineTo(x + w * .7, y + h * .5);
+    ctx.lineTo(x + w * .5, y + h * .7);
+    ctx.moveTo(x + w * .7, y + h * .5);
+    ctx.lineTo(x + w * .25, y + h * .5);
     ctx.stroke();
 
     x = initX;
-    y += GRID_H;
+    y += h;
 
     ctx.lineWidth = 1;
     draw1(ctx, {x, y}, PAIR_OFFSET, t);
-    x += GRID_W;
+    x += w;
     drawLegendBGTile({x,y}, t);
     draw0(ctx, {x, y}, -PAIR_OFFSET, BG_COLOR, t);
-    x += GRID_W
-      drawEq({x, y});
-    x += EQ_W;
-
-    ctx.strokeStyle = 'white';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(x + GRID_W * .3, y + GRID_H * .65);
-    ctx.lineTo(x + GRID_W * .5, y + GRID_H * .35);
-    ctx.lineTo(x + GRID_W * .7, y + GRID_H * .65);
-    ctx.stroke();
-
-    x = initX;
-    y += GRID_H;
-
-    ctx.lineWidth = 1;
-    draw1(ctx, {x, y}, PAIR_OFFSET, t);
-    x += GRID_W;
-    draw1(ctx, {x, y}, -PAIR_OFFSET, t);
-    x += GRID_W;
+    x += w;
     drawEq({x, y});
     x += EQ_W;
 
     ctx.strokeStyle = 'white';
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(x + GRID_W * .3, y + GRID_H * .35);
-    ctx.lineTo(x + GRID_W * .5, y + GRID_H * .65);
-    ctx.lineTo(x + GRID_W * .7, y + GRID_H * .35);
+    ctx.moveTo(x + w * .25, y + h * .5);
+    ctx.lineTo(x + w * .45, y + h * .3);
+    ctx.lineTo(x + w * .65, y + h * .5);
+    ctx.moveTo(x + w * .45, y + h * .3);
+    ctx.lineTo(x + w * .45, y + h * .75);
+    ctx.stroke();
+
+    x = initX;
+    y += h;
+
+    ctx.lineWidth = 1;
+    draw1(ctx, {x, y}, PAIR_OFFSET, t);
+    x += w;
+    draw1(ctx, {x, y}, -PAIR_OFFSET, t);
+    x += w;
+    drawEq({x, y});
+    x += EQ_W;
+
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(x + w * .25, y + h * .55);
+    ctx.lineTo(x + w * .45, y + h * .75);
+    ctx.lineTo(x + w * .65, y + h * .55);
+    ctx.moveTo(x + w * .45, y + h * .75);
+    ctx.lineTo(x + w * .45, y + h * .3);
     ctx.stroke();
   }
 };
