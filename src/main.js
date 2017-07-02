@@ -701,7 +701,6 @@ const draw = function (t) {
     requestDraw();
   }
 
-  ctx.clearRect(0, 0, cnv.width, cnv.height);
   ctx.fillStyle = BG_COLOR;
   ctx.fillRect(0, 0, cnv.width, cnv.height);
 
@@ -1064,11 +1063,14 @@ const showMessage = function (msg, fullscreen) {
     div.style.top = '0';
     div.style.bottom = '';
     div.style['padding-top'] = '100px';
-    ctx.clearRect(0, 0, cnv.width, cnv.height);
+    div.style.color = 'white';
+    ctx.fillStyle = BG_COLOR;
+    ctx.fillRect(0, 0, cnv.width, cnv.height);
   } else {
     div.style.top = '';
     div.style.bottom = '';
     div.style['padding-top'] = '';
+    div.style.color = '#00FF00';
   }
   div.innerHTML = msg;
 
