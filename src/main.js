@@ -66,6 +66,9 @@ const GUY_SCALE = 0.8;
 let LEVEL_STATE = null;
 let LEVEL_SWITCH = null;
 
+const BUTTON_LAYOUT = {};
+const BUTTON_HELD_OFFSET = 5;
+
 const cnv = document.getElementById('cnv');
 const ctx = cnv.getContext('2d');
 
@@ -92,6 +95,30 @@ const setSize = function () {
     GRID_X = PORTRAIT_GRID_X;
     GRID_Y = PORTRAIT_GRID_Y;
   }
+
+  {
+    const l = BUTTON_LAYOUT;
+    l.gridMinX = GRID_X;
+    l.gridMinY = GRID_Y;
+    l.gridMaxX = GRID_X + GRID_W * GRID_COLS;
+    l.gridMaxY = GRID_Y + GRID_H * GRID_ROWS;
+
+    l.stepMinX = CONTROLS_X + CONTROL_W + CONTROL_PAD_X / 2;
+    l.stepMinY = CONTROLS_Y;
+    l.stepMaxX = CONTROLS_X + CONTROL_PAD_X * 2 + CONTROL_W * 2;
+    l.stepMaxY = CONTROLS_Y + CONTROL_H;
+
+    l.playMinX = CONTROLS_X + CONTROL_W;
+    l.playMinY = CONTROLS_Y + CONTROL_H;
+    l.playMaxX = CONTROLS_X + CONTROL_PAD_X * 2 + CONTROL_W * 2;
+    l.playMaxY = CONTROLS_Y + CONTROL_PAD_Y * 2 + CONTROL_H * 2;
+
+    l.resetMinX = CONTROLS_X - CONTROL_PAD_X / 2;
+    l.resetMinY = CONTROLS_Y;
+    l.resetMaxX = CONTROLS_X + CONTROL_W + CONTROL_PAD_X / 2;
+    l.resetMaxY = CONTROLS_Y + CONTROL_H;
+  }
+
   const desiredWidth = LANDSCAPE ?
     LANDSCAPE_LEGEND_X + GRID_W * 3.5 + PAD_X :
     GRID_X + GRID_W * GRID_COLS + PAD_X;
@@ -311,6 +338,11 @@ const drawPC = function (pc) {
 };
 
 const drawPlay = function (ctx, x, y, w, h) {
+  if (BUTTON_LAYOUT.playHeld) {
+    x += BUTTON_HELD_OFFSET;
+    y += BUTTON_HELD_OFFSET;
+  }
+
   // play button
   ctx.beginPath();
   ctx.moveTo(x, y);
@@ -322,6 +354,11 @@ const drawPlay = function (ctx, x, y, w, h) {
 };
 
 const drawStep = function (ctx, x, y, w, h) {
+  if (BUTTON_LAYOUT.stepHeld) {
+    x += BUTTON_HELD_OFFSET;
+    y += BUTTON_HELD_OFFSET;
+  }
+
   ctx.beginPath();
   // triangle start
   ctx.moveTo(x, y);
@@ -340,6 +377,11 @@ const drawStep = function (ctx, x, y, w, h) {
 };
 
 const drawReset = function (ctx, x, y, w, h) {
+  if (BUTTON_LAYOUT.resetHeld) {
+    x += BUTTON_HELD_OFFSET;
+    y += BUTTON_HELD_OFFSET;
+  }
+
   ctx.beginPath();
   ctx.moveTo(x, y + h * 0.5);
   ctx.lineTo(x + w * 0.5, y);
@@ -768,9 +810,40 @@ const draw = function (t) {
   ctx.restore();
 };
 
-const handleClick = function ({x: pageX, y: pageY}) {
+const handleTouchStart = function ({x: pageX, y: pageY}) {
   const x = pageX/RESIZE_SCALE;
   const y = pageY/RESIZE_SCALE;
+
+  const l = BUTTON_LAYOUT;
+
+  l.playHeld = x >= l.playMinX && x < l.playMaxX &&
+                  y >= l.playMinY && y < l.playMaxY;
+  l.stepHeld = x >= l.stepMinX && x < l.stepMaxX &&
+                  y >= l.stepMinY && y < l.stepMaxY;
+  l.resetHeld = x >= l.resetMinX && x < l.resetMaxX &&
+                   y >= l.resetMinY && y < l.resetMaxY;
+  requestDraw();
+};
+
+const handleTouchCancel = function () {
+  const l = BUTTON_LAYOUT;
+
+  l.playHeld = false;
+  l.stepHeld = false;
+  l.resetHeld = false;
+
+  requestDraw();
+};
+
+const handleTouchEnd = function ({x: pageX, y: pageY}) {
+  const x = pageX/RESIZE_SCALE;
+  const y = pageY/RESIZE_SCALE;
+
+  const l = BUTTON_LAYOUT;
+
+  l.playHeld = false;
+  l.stepHeld = false;
+  l.resetHeld = false;
 
   if (CUR_LEVEL === LEVELS.length - 1) {
     return;
@@ -786,34 +859,13 @@ const handleClick = function ({x: pageX, y: pageY}) {
     return;
   }
 
-  const gridMinX = GRID_X;
-  const gridMinY = GRID_Y;
-  const gridMaxX = GRID_X + GRID_W * GRID_COLS;
-  const gridMaxY = GRID_Y + GRID_H * GRID_ROWS;
-
-  const stepMinX = CONTROLS_X + CONTROL_W + CONTROL_PAD_X / 2;
-  const stepMinY = CONTROLS_Y;
-  const stepMaxX = CONTROLS_X + CONTROL_PAD_X * 2 + CONTROL_W * 2;
-  const stepMaxY = CONTROLS_Y + CONTROL_H;
-
-  const playMinX = CONTROLS_X + CONTROL_W;
-  const playMinY = CONTROLS_Y + CONTROL_H;
-  const playMaxX = CONTROLS_X + CONTROL_PAD_X * 2 + CONTROL_W * 2;
-  const playMaxY = CONTROLS_Y + CONTROL_PAD_Y * 2 + CONTROL_H * 2;
-
-  const resetMinX = CONTROLS_X - CONTROL_PAD_X / 2;
-  const resetMinY = CONTROLS_Y;
-  const resetMaxX = CONTROLS_X + CONTROL_W + CONTROL_PAD_X / 2;
-  const resetMaxY = CONTROLS_Y + CONTROL_H;
-
-
   if (!LEVEL_STATE.noEdit && LEVEL_STATE.progress === 0 &&
-      x >= gridMinX && x < gridMaxX && y >= gridMinY && y < gridMaxY) {
+      x >= l.gridMinX && x < l.gridMaxX && y >= l.gridMinY && y < l.gridMaxY) {
     toggleBit(LEVEL_STATE,
           {i: Math.floor((x - GRID_X) / GRID_W),
            j: Math.floor((y - GRID_Y) / GRID_H)});
   } else if (!LEVEL_STATE.playActive && LEVEL_STATE.guyAnim.length === 0 &&
-             x >= stepMinX && x < stepMaxX && y >= stepMinY && y < stepMaxY) {
+             x >= l.stepMinX && x < l.stepMaxX && y >= l.stepMinY && y < l.stepMaxY) {
     if (LEVEL_STATE.progress === 0) {
       // kickoff
       LEVEL_STATE.stepActive = true;
@@ -829,7 +881,7 @@ const handleClick = function ({x: pageX, y: pageY}) {
     }
   } else if (!LEVEL_STATE.noPlay &&
              !LEVEL_STATE.playActive && !LEVEL_STATE.dead &&
-             x >= playMinX && x < playMaxX && y >= playMinY && y < playMaxY) {
+             x >= l.playMinX && x < l.playMaxX && y >= l.playMinY && y < l.playMaxY) {
     LEVEL_STATE.playActive = true;
 
     if (LEVEL_STATE.grid[LEVEL_STATE.guyAt.j][LEVEL_STATE.guyAt.i] === 1) {
@@ -841,7 +893,7 @@ const handleClick = function ({x: pageX, y: pageY}) {
     }
 
   } else if ((LEVEL_STATE.playActive || LEVEL_STATE.stepActive || LEVEL_STATE.dead) &&
-             x >= resetMinX && x < resetMaxX && y >= resetMinY && y < resetMaxY) {
+             x >= l.resetMinX && x < l.resetMaxX && y >= l.resetMinY && y < l.resetMaxY) {
     resetLevel(LEVEL_STATE);
   }
 
@@ -1127,7 +1179,9 @@ const getHashFromLevel = function () {
 window.addEventListener('resize', handleResize);
 
 const TOUCHY = GET_TOUCHY(window, {
-  touchEnd: handleClick
+  touchStart: handleTouchStart,
+  touchEnd: handleTouchEnd,
+  touchCancel: handleTouchCancel
 });
 
 setSize();
