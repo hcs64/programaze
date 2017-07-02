@@ -325,6 +325,10 @@ const drawGoal = function ({i, j}) {
 };
 
 const drawPC = function (pc) {
+  if (pc < 0) {
+    pc += GRID_ROWS * GRID_COLS / 2;
+  }
+
   const j = Math.floor(pc / 4);
   const i = (pc - j * 4) * 2;
   ctx.strokeStyle = 'red';
@@ -815,8 +819,12 @@ const draw = function (t) {
 
   drawLegend(LEVEL_STATE.limitedLegend, progress);
 
-  if (progress !== 0) {
-    drawPC(LEVEL_STATE.pc);
+  if (progress === 1) {
+    if (LEVEL_STATE.guyAnim.length > 0 && !LEVEL_STATE.dead) {
+      drawPC(LEVEL_STATE.pc - 1)
+    } else {
+      drawPC(LEVEL_STATE.pc);
+    }
   }
 
   ctx.restore();
@@ -1127,11 +1135,10 @@ const runCommand = function (auto) {
       ls.pc = 0;
     }
   } else {
+    ls.dead = true;
     LEVEL_STATE.playActive = false;
     animateBump(LEVEL_STATE.guyAnim, ls.guyAt, dest);
     showMessage(RESET_MESSAGE, false);
-
-    ls.dead = true;
   }
 };
 
