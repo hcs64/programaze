@@ -594,7 +594,7 @@ const animateBump = function (anim, from, to) {
 
   let {x: squashI, y: squashJ, w: squashW, h: squashH} =
     shortenRectInDir(
-      {x: midI, y: midJ, w: midW, h: midH}, {dx: di * 0.2, dy: dj * 0.2});
+      {x: midI, y: midJ, w: midW, h: midH}, {dx: di * 0.3, dy: dj * 0.3});
   const sq = 1/0.8;
   const sq2 = (sq - 1)/2
   squashW *= di === 0 ? sq : 1;
@@ -605,8 +605,8 @@ const animateBump = function (anim, from, to) {
   anim.push(
     {t: 0, i: from.i, j: from.j, w: 1, h: 1},
     {t: MOVE_ANIM_MS * amt, i: midI, j: midJ, w: midW, h: midH},
-    {t: MOVE_ANIM_MS * amt, i: squashI, j: squashJ, w: squashW, h: squashH},
-    {t: MOVE_ANIM_MS * amt * 3, i: from.i, j: from.j, w: 1, h: 1},
+    {t: MOVE_ANIM_MS * amt * 3, i: squashI, j: squashJ, w: squashW, h: squashH},
+    {t: MOVE_ANIM_MS * amt * 5, i: from.i, j: from.j, w: 1, h: 1},
   );
 
 };
