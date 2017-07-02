@@ -761,7 +761,7 @@ const draw = function (t) {
 
   drawLegend(LEVEL_STATE.limitedLegend, progress);
 
-  if (progress === 1) {
+  if (progress !== 0) {
     drawPC(LEVEL_STATE.pc);
   }
 
