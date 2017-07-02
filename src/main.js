@@ -1,3 +1,5 @@
+/* imported GET_TOUCHY */
+
 (function(){
 'use strict';
 
@@ -923,6 +925,14 @@ const LEVELS = [
   { msg: 'Tap the bits (' +
          '<canvas id="icon0"></canvas>,<canvas id="icon1"></canvas>) ' +
          'to change the program',
+    grid: [[0,0,0,0,0,0,1,0],
+           [1,0,1,0,0,0,0,0],
+           [0,0,0,0,0,0,0,0],
+           [0,0,0,0,0,0,0,0],
+           [0,0,0,0,0,0,0,0],
+           [0,0,0,0,0,0,0,0],
+           [0,0,0,0,0,0,0,0],
+           [0,0,0,0,0,0,0,0]],
     guyAt: {i: 4, j: 2},
     goalAt: {i: 7, j: 5},
     noPlay: true,
