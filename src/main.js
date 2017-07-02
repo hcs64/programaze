@@ -304,6 +304,10 @@ const drawPC = function (pc) {
   ctx.strokeRect(GRID_X + GRID_W * i, GRID_Y + GRID_H * j,
                  GRID_W * 2 - 1, GRID_H - 1);
 
+  const v = LEVEL_STATE.grid[j][i] * 2 + LEVEL_STATE.grid[j][i+1];
+
+  ctx.strokeRect(LEGEND_X, LEGEND_Y + GRID_H * v,
+                 GRID_W * 3.5, GRID_H);
 };
 
 const drawPlay = function (ctx, x, y, w, h) {
@@ -749,16 +753,16 @@ const draw = function (t) {
   drawGrid(LEVEL_STATE.grid, progress,
            LEVEL_STATE.guyAt, LEVEL_STATE.goalAt);
 
-  if (progress === 1) {
-    drawPC(LEVEL_STATE.pc);
-  }
-
   drawControls(!LEVEL_STATE.noPlay && !LEVEL_STATE.dead,
     (LEVEL_STATE.playActive || LEVEL_STATE.stepActive || LEVEL_STATE.dead),
     !LEVEL_STATE.playActive,
     LEVEL_STATE.playActive, LEVEL_STATE.stepActive);
 
   drawLegend(LEVEL_STATE.limitedLegend, progress);
+
+  if (progress === 1) {
+    drawPC(LEVEL_STATE.pc);
+  }
 
   ctx.restore();
 };
