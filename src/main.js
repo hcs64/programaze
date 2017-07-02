@@ -44,7 +44,7 @@ const ICON_H = 20;
 const LANDSCAPE_LEGEND_X = LANDSCAPE_CONTROLS_X - 20;
 const LANDSCAPE_LEGEND_Y = LANDSCAPE_CONTROLS_Y + CONTROL_PAD_Y * 2+ CONTROL_H * 2;
 const PORTRAIT_LEGEND_X = 20;
-const PORTRAIT_LEGEND_Y = -2;
+const PORTRAIT_LEGEND_Y = 5;
 let LEGEND_X = 10;
 let LEGEND_Y = 10;
 
@@ -761,16 +761,34 @@ const handleClick = function ({x: pageX, y: pageY}) {
     return;
   }
 
+  const gridMinX = GRID_X;
+  const gridMinY = GRID_Y;
+  const gridMaxX = GRID_X + GRID_W * GRID_COLS;
+  const gridMaxY = GRID_Y + GRID_H * GRID_ROWS;
+
+  const stepMinX = CONTROLS_X + CONTROL_W + CONTROL_PAD_X / 2;
+  const stepMinY = CONTROLS_Y;
+  const stepMaxX = CONTROLS_X + CONTROL_PAD_X * 2 + CONTROL_W * 2;
+  const stepMaxY = CONTROLS_Y + CONTROL_H;
+
+  const playMinX = CONTROLS_X + CONTROL_W;
+  const playMinY = CONTROLS_Y + CONTROL_H;
+  const playMaxX = CONTROLS_X + CONTROL_PAD_X * 2 + CONTROL_W * 2;
+  const playMaxY = CONTROLS_Y + CONTROL_PAD_Y * 2 + CONTROL_H * 2;
+
+  const resetMinX = CONTROLS_X - CONTROL_PAD_X / 2;
+  const resetMinY = CONTROLS_Y;
+  const resetMaxX = CONTROLS_X + CONTROL_W + CONTROL_PAD_X / 2;
+  const resetMaxY = CONTROLS_Y + CONTROL_H;
+
+
   if (!LEVEL_STATE.noEdit && LEVEL_STATE.progress === 0 &&
-      x >= GRID_X && x < GRID_X + GRID_W * GRID_COLS &&
-      y >= GRID_Y && y < GRID_Y * GRID_H * GRID_ROWS) {
+      x >= gridMinX && x < gridMaxX && y >= gridMinY && y < gridMaxY) {
     toggleBit(LEVEL_STATE,
           {i: Math.floor((x - GRID_X) / GRID_W),
            j: Math.floor((y - GRID_Y) / GRID_H)});
   } else if (!LEVEL_STATE.playActive && LEVEL_STATE.guyAnim.length === 0 &&
-             x >= CONTROLS_X + CONTROL_W &&
-             x < CONTROLS_X + CONTROL_PAD_X + CONTROL_W * 2 &&
-             y >= CONTROLS_Y && y < CONTROLS_Y + CONTROL_H) {
+             x >= stepMinX && x < stepMaxX && y >= stepMinY && y < stepMaxY) {
     if (LEVEL_STATE.progress === 0) {
       // kickoff
       LEVEL_STATE.stepActive = true;
@@ -786,10 +804,7 @@ const handleClick = function ({x: pageX, y: pageY}) {
     }
   } else if (!LEVEL_STATE.noPlay &&
              !LEVEL_STATE.playActive && !LEVEL_STATE.dead &&
-             x >= CONTROLS_X + CONTROL_W &&
-             x < CONTROLS_X + CONTROL_PAD_X + CONTROL_W * 2 &&
-             y >= CONTROLS_Y + CONTROL_H &&
-             y < CONTROLS_Y + 2 * CONTROL_H + CONTROL_PAD_Y) {
+             x >= playMinX && x < playMaxX && y >= playMinY && y < playMaxY) {
     LEVEL_STATE.playActive = true;
 
     if (LEVEL_STATE.grid[LEVEL_STATE.guyAt.j][LEVEL_STATE.guyAt.i] === 1) {
@@ -801,9 +816,7 @@ const handleClick = function ({x: pageX, y: pageY}) {
     }
 
   } else if ((LEVEL_STATE.playActive || LEVEL_STATE.stepActive || LEVEL_STATE.dead) &&
-             y >= CONTROLS_Y && y < CONTROLS_Y + CONTROL_H &&
-             x >= CONTROLS_X &&
-             x < CONTROLS_X + CONTROL_W * 2) {
+             x >= resetMinX && x < resetMaxX && y >= resetMinY && y < resetMaxY) {
     resetLevel(LEVEL_STATE);
   }
 
