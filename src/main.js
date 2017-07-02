@@ -40,6 +40,8 @@ const CONTROL_PAD_Y = 25;
 
 const ICON_W = 10;
 const ICON_H = 20;
+const BIT_ICON_W = 30;
+const BIT_ICON_H = 30;
 
 const LANDSCAPE_LEGEND_X = LANDSCAPE_CONTROLS_X - 20;
 const LANDSCAPE_LEGEND_Y = LANDSCAPE_CONTROLS_Y + CONTROL_PAD_Y * 2+ CONTROL_H * 2;
@@ -135,7 +137,7 @@ const lerp = function (x0, x1, t) {
   return x0 + (x1 - x0) * t;
 };
 
-const draw0 = function ({x, y}, offset, holeColor, t) {
+const draw0 = function (ctx, {x, y}, offset, holeColor, t) {
   if (t >= 1) {
     return;
   }
@@ -178,7 +180,16 @@ const draw0 = function ({x, y}, offset, holeColor, t) {
   }
 };
 
-const draw1 = function ({x, y}, offset, t) {
+const drawIcon0 = function (ctx, x, y, w, h) {
+  ctx.save();
+  ctx.scale(w / GRID_W, h / GRID_H);
+
+  draw0(ctx, {x: x * GRID_W / w, y: y * GRID_H / h}, 0, 'black', 0);
+
+  ctx.restore();
+};
+
+const draw1 = function (ctx, {x, y}, offset, t) {
   const x0 = x + (GRID_W - ONE_W)/2 + offset;
   const y0 = y + (GRID_H - ONE_H)/2;
   const w0 = ONE_W;
@@ -206,6 +217,15 @@ const draw1 = function ({x, y}, offset, t) {
   }
 };
 
+const drawIcon1 = function (ctx, x, y, w, h) {
+  ctx.save();
+  ctx.scale(w / GRID_W, h / GRID_H);
+
+  draw1(ctx, {x: x * GRID_W / w, y: y * GRID_H / h}, 0, 0);
+
+  ctx.restore();
+};
+
 const drawEq = function ({x, y}) {
   ctx.fillStyle = 'white';
   ctx.fillRect(x + GRID_W / 5, y + GRID_H * 3 / 12, GRID_W / 2, GRID_W / 6);
@@ -230,9 +250,9 @@ const drawGrid = function (grid, t, guyAt, goalAt) {
       }
 
       if (grid[j][i] === 1) {
-        draw1({x, y}, offset, t);
+        draw1(ctx, {x, y}, offset, t);
       } else {
-        draw0({x, y}, offset, holeColor, t);
+        draw0(ctx, {x, y}, offset, holeColor, t);
       } // end else (0)
     } // end i loop
   } // end j loop
@@ -387,10 +407,10 @@ const drawLegend = function (limited, t) {
 
   ctx.lineWidth = 1;
   drawLegendBGTile({x,y}, t);
-  draw0({x, y}, PAIR_OFFSET, BG_COLOR, t);
+  draw0(ctx, {x, y}, PAIR_OFFSET, BG_COLOR, t);
   x += GRID_W;
   drawLegendBGTile({x,y}, t);
-  draw0({x, y}, -PAIR_OFFSET, BG_COLOR, t);
+  draw0(ctx, {x, y}, -PAIR_OFFSET, BG_COLOR, t);
   x += GRID_W;
   drawEq({x, y});
   x += EQ_W;
@@ -410,9 +430,9 @@ const drawLegend = function (limited, t) {
   if (!limited) {
     ctx.lineWidth = 1;
     drawLegendBGTile({x,y}, t);
-    draw0({x, y}, PAIR_OFFSET, BG_COLOR, t);
+    draw0(ctx, {x, y}, PAIR_OFFSET, BG_COLOR, t);
     x += GRID_W;
-    draw1({x, y}, -PAIR_OFFSET, t);
+    draw1(ctx, {x, y}, -PAIR_OFFSET, t);
     x += GRID_W;
     drawEq({x, y});
     x += EQ_W;
@@ -429,10 +449,10 @@ const drawLegend = function (limited, t) {
     y += GRID_H;
 
     ctx.lineWidth = 1;
-    draw1({x, y}, PAIR_OFFSET, t);
+    draw1(ctx, {x, y}, PAIR_OFFSET, t);
     x += GRID_W;
     drawLegendBGTile({x,y}, t);
-    draw0({x, y}, -PAIR_OFFSET, BG_COLOR, t);
+    draw0(ctx, {x, y}, -PAIR_OFFSET, BG_COLOR, t);
     x += GRID_W
       drawEq({x, y});
     x += EQ_W;
@@ -449,9 +469,9 @@ const drawLegend = function (limited, t) {
     y += GRID_H;
 
     ctx.lineWidth = 1;
-    draw1({x, y}, PAIR_OFFSET, t);
+    draw1(ctx, {x, y}, PAIR_OFFSET, t);
     x += GRID_W;
-    draw1({x, y}, -PAIR_OFFSET, t);
+    draw1(ctx, {x, y}, -PAIR_OFFSET, t);
     x += GRID_W;
     drawEq({x, y});
     x += EQ_W;
@@ -835,7 +855,7 @@ const LEVELS = [
   // 1
   {
     msg: 'Tap Step (<canvas id="stepIcon"></canvas>) ' +
-         'repeatedly to run the program.',
+         'repeatedly to run the program',
     guyAt: {i: 6, j: 0},
     goalAt: {i: 1, j: 0},
     limitedLegend: true,
@@ -843,7 +863,15 @@ const LEVELS = [
     noEdit: true
   },
   // 2
-  { msg: 'Toggle the bits of the program by tapping them.',
+  { msg: 'Tap the bits (' +
+         '<canvas id="icon0"></canvas>,<canvas id="icon1"></canvas>) ' +
+         'to change the program',
+    guyAt: {i: 4, j: 2},
+    goalAt: {i: 7, j: 5},
+    noPlay: true,
+  },
+  // 3
+  { msg: 'Every<canvas id="icon1"></canvas>becomes a solid wall',
     grid: [[1,1,1,1,1,1,1,1],
            [0,0,0,0,0,0,0,0],
            [0,0,0,0,0,0,0,0],
@@ -856,37 +884,37 @@ const LEVELS = [
     goalAt: {i: 0, j: 5},
     noPlay: true
   },
-  // 3
+  // 4
   { msg: 'Tap Play (<canvas id="playIcon"></canvas>) '+
-         'to run the program automatically.',
+         'to run the program automatically',
     guyAt: {i: 5, j: 0},
     goalAt: {i: 0, j: 3},
   },
-  // 4
+  // 5
   { guyAt: {i: 5, j: 7},
     goalAt: {i: 1, j: 0},
   },
-  // 5
+  // 6
   { guyAt: {i: 3, j: 0},
     goalAt: {i: 3, j: 7},
   },
-  // 6
+  // 7
   { guyAt: {i: 4, j: 7},
     goalAt: {i: 4, j: 0},
   },
-  // 7
-  {msg: 'Boss puzzle!'},
   // 8
+  {msg: 'Boss puzzle!'},
+  // 9
   { guyAt: {i: 1, j: 7},
     goalAt: {i: 6, j: 0},
   },
-  // 9
-  {msg: 'Final phase!'},
   // 10
+  {msg: 'Final phase!'},
+  // 11
   { guyAt: {i: 1, j: 0},
     goalAt: {i: 6, j: 0},
   },
-  // 11
+  // 12
   {msg: 'You win!<br><br>Thanks for playing!<br><br>' +
         '<small>Designed by ' +
         '<a href="https://gashlin.net" style="color: white">Adam&nbsp;Gashlin</a>' +
@@ -959,18 +987,21 @@ const showMessage = function (msg, fullscreen) {
   }
   div.innerHTML = msg;
 
-  [{id: 'stepIcon', f: drawStep},
-   {id: 'playIcon', f: drawPlay},
-   {id: 'resetIcon', f: drawReset}].forEach(function ({id, f}) {
+  [{id: 'stepIcon', f: drawStep, w: ICON_W, h: ICON_H},
+   {id: 'playIcon', f: drawPlay, w: ICON_W, h: ICON_H},
+   {id: 'resetIcon', f: drawReset, w: ICON_W, h: ICON_H},
+   {id: 'icon0', f: drawIcon0, w: BIT_ICON_W, h: BIT_ICON_H},
+   {id: 'icon1', f: drawIcon1, w: BIT_ICON_W, h: BIT_ICON_H},
+  ].forEach(function ({id, f, w, h}) {
        const icon = document.getElementById(id);
     if (!icon ) {
       return;
     }
-    icon.width = ICON_W;
-    icon.height = ICON_H;
-    icon.style.width = ICON_W + 'px';
-    icon.style.height = ICON_H + 'px';
-    f(icon.getContext('2d'), 0, 0, ICON_W, ICON_H);
+    icon.width = w;
+    icon.height = h;
+    icon.style.width = w + 'px';
+    icon.style.height = h + 'px';
+    f(icon.getContext('2d'), 0, 0, w, h);
   });
 };
 
