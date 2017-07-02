@@ -1070,8 +1070,20 @@ const winLevel = function () {
       LEVEL_SWITCH = {};
     }
     CUR_LEVEL += 1;
+    getHashFromLevel();
     startLevel();
   }
+};
+
+const getLevelFromHash = function () {
+  const n = parseInt(window.location.hash.substring(1), 10);
+  if (!isNaN(n) && n >= 0 && n < LEVELS.length) {
+    CUR_LEVEL = n;
+  }
+};
+
+const getHashFromLevel = function () {
+  window.history.replaceState(undefined, undefined, '#' + CUR_LEVEL);
 };
 
 // main code starts here
@@ -1082,8 +1094,14 @@ const TOUCHY = GET_TOUCHY(window, {
   touchEnd: handleClick
 });
 
-
 setSize();
+
+window.addEventListener('hashchange', function () {
+  getLevelFromHash();
+  startLevel();
+});
+
+getLevelFromHash();
 
 startLevel();
 
