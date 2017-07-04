@@ -74,8 +74,10 @@ let LEVEL_SWITCH = null;
 const BUTTON_LAYOUT = {};
 const BUTTON_HELD_OFFSET = 5;
 
-const cnv = document.getElementById('cnv');
 const message = document.getElementById('message');
+const caption = document.getElementById('caption');
+
+const cnv = document.getElementById('cnv');
 const ctx = cnv.getContext('2d');
 
 let DPR = 1;
@@ -705,7 +707,7 @@ const draw = function (t) {
 
   if (LEVEL_SWITCH) {
     const tt = quadInOut(1 - (t - LEVEL_SWITCH.start) / LEVEL_SWITCH_MS);
-    if (LEVEL_SWITCH.msg && message.style.left != '0') {
+    if (LEVEL_SWITCH.msg && message.style.left !== '0') {
       message.style.left = (WHOLE_WIDTH * tt) + 'px';
     }
     ctx.translate(cnv.width / DPR * tt, 0);
@@ -887,7 +889,6 @@ const handleTouchEnd = function ({x: pageX, y: pageY}) {
   }
 
   if (!LEVEL_STATE || !LEVEL_STATE.guyAt) {
-    hideMessage();
     winLevel();
     return;
   }
@@ -1071,23 +1072,25 @@ const resetLevel = function (state) {
 };
 
 const showMessage = function (msg, fullscreen) {
-  const div = message;
-  div.style.visibility = 'visible';
   if (fullscreen) {
-    div.style.top = '0';
-    div.style.bottom = '';
-    div.style['padding-top'] = '100px';
-    div.style.color = 'white';
-    div.style.background = '#000000';
+    message.style.top = '0';
+    message.style.bottom = '';
+    message.style['padding-top'] = '100px';
+    message.style.color = 'white';
+    message.style.background = '#000000';
+    message.style['z-index'] = '2';
+    message.style.visibility = 'visible';
+    message.innerHTML = msg;
   } else {
-    div.style.top = '';
-    div.style.bottom = '0';
-    div.style['padding-top'] = '';
-    div.style.color = '#00FF00';
-    div.style.background = 'rgb(0,0,0)';
-    div.style.background = 'rgba(0,0,0,0.8)';
+    caption.style.top = '';
+    caption.style.bottom = '0';
+    caption.style['padding-top'] = '';
+    caption.style.color = '#00FF00';
+    caption.style.background = 'rgb(0,0,0)';
+    caption.style.background = 'rgba(0,0,0,0.8)';
+    caption.style.visibility = 'visible';
+    caption.innerHTML = msg;
   }
-  div.innerHTML = msg;
 
   [{id: 'stepIcon', f: drawStep, w: ICON_W, h: ICON_H},
    {id: 'playIcon', f: drawPlay, w: ICON_W, h: ICON_H},
@@ -1108,8 +1111,15 @@ const showMessage = function (msg, fullscreen) {
 };
 
 const hideMessage = function () {
+  if (LEVEL_SWITCH && LEVEL_SWITCH.msgOut) {
+    ctx.clearRect(0, 0, cnv.width, cnv.height);
+    message.style['z-index'] = '0';
+    return;
+  }
   message.innerHTML = '';
   message.style.visibility = 'hidden';
+  caption.innerHTML = '';
+  caption.style.visibility = 'hidden';
 };
 
 const checkDest = function ({i, j}) {
@@ -1177,6 +1187,7 @@ const autoRunCommand = function () {
 const startLevel = function () {
   const level = LEVELS[CUR_LEVEL];
   if (level.msg) {
+    hideMessage();
     showMessage(level.msg, !level.guyAt);
   } else {
     hideMessage();
@@ -1207,6 +1218,9 @@ const winLevel = function () {
         message.style.left = WHOLE_WIDTH + 'px';
         LEVEL_SWITCH = {msg: true};
       }
+    }
+    if (LEVEL_SWITCH && !LEVELS[CUR_LEVEL].guyAt) {
+      LEVEL_SWITCH.msgOut = true;
     }
     CUR_LEVEL += 1;
     getHashFromLevel();

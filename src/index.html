@@ -11,7 +11,7 @@ html, body {
   background-color: black;
 }
 
-div#message {
+div.msg {
   visibility: hidden;
   position: absolute;
   bottom: 0;
@@ -28,6 +28,7 @@ div#message {
   -webkit-user-select: none;
   -ms-user-select: none;
   -o-user-select: none;
+  z-index: 2;
 }
 
 div#surround {
@@ -39,7 +40,7 @@ div#surround {
   overflow: hidden;
 }
 
-div#message canvas {
+div#caption canvas {
   vertical-align: middle;
 }
 
@@ -49,12 +50,13 @@ canvas#cnv {
   left: 0;
   height: 100%;
   width: 100%;
+  z-index: 1;
 }
 </style>
 </head>
 
 <body>
-<div id="surround"><canvas id="cnv"></canvas><div id="message"></div></div>
+<div id="surround"><canvas id="cnv"></canvas><div class="msg" id="message"></div><div class="msg" id="caption"></div></div>
 <script src="anim.js"></script>
 <script src="touchy.js"></script>
 <script src="main.js"></script>
