@@ -30,6 +30,15 @@ div#message {
   -o-user-select: none;
 }
 
+div#surround {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
 div#message canvas {
   vertical-align: middle;
 }
@@ -45,8 +54,7 @@ canvas#cnv {
 </head>
 
 <body>
-<canvas id="cnv"></canvas>
-<div id="message">HELLO</div>
+<div id="surround"><canvas id="cnv"></canvas><div id="message"></div></div>
 <script src="anim.js"></script>
 <script src="touchy.js"></script>
 <script src="main.js"></script>

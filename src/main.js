@@ -25,6 +25,9 @@ const EQ_W = GRID_W * .7;
 let RESIZE_SCALE = 1;
 let LANDSCAPE = true;
 
+let WHOLE_WIDTH = 0;
+let FIRST_MESSAGE = true;
+
 const PAD_X = 10;
 const PAD_Y = 10;
 
@@ -72,6 +75,7 @@ const BUTTON_LAYOUT = {};
 const BUTTON_HELD_OFFSET = 5;
 
 const cnv = document.getElementById('cnv');
+const message = document.getElementById('message');
 const ctx = cnv.getContext('2d');
 
 let DPR = 1;
@@ -152,6 +156,9 @@ const setSize = function () {
 
   cnv.style.width = width + 'px';
   cnv.style.height = height + 'px';
+
+  document.getElementById('surround').style.width = width + 'px';
+  WHOLE_WIDTH = width;
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.scale(DPR, DPR);
@@ -679,9 +686,6 @@ const requestDraw = function () {
 
 const draw = function (t) {
   DRAW_IN_FLIGHT = false;
-  if (!LEVEL_STATE) {
-    return;
-  }
 
   ctx.save();
 
@@ -695,16 +699,26 @@ const draw = function (t) {
     }
   }
 
+  if (LEVELS[CUR_LEVEL].msg && !LEVEL_SWITCH) {
+    message.style.left = '0';
+  }
+
   if (LEVEL_SWITCH) {
-    ctx.translate(cnv.width / DPR *
-      quadInOut(1 - (t - LEVEL_SWITCH.start) / LEVEL_SWITCH_MS), 0);
+    const tt = quadInOut(1 - (t - LEVEL_SWITCH.start) / LEVEL_SWITCH_MS);
+    if (LEVEL_SWITCH.msg && message.style.left != '0') {
+      message.style.left = (WHOLE_WIDTH * tt) + 'px';
+    }
+    ctx.translate(cnv.width / DPR * tt, 0);
     requestDraw();
   }
 
   ctx.fillStyle = BG_COLOR;
   ctx.fillRect(0, 0, cnv.width, cnv.height);
 
-//    transformAnim ? move.animAt(transformAnim, t) : (toggle ? 0 : 1);
+  if (!LEVEL_STATE) {
+    ctx.restore();
+    return;
+  }
 
   let progress = LEVEL_STATE.progress;
 
@@ -1057,20 +1071,21 @@ const resetLevel = function (state) {
 };
 
 const showMessage = function (msg, fullscreen) {
-  const div = document.getElementById('message');
+  const div = message;
   div.style.visibility = 'visible';
   if (fullscreen) {
     div.style.top = '0';
     div.style.bottom = '';
     div.style['padding-top'] = '100px';
     div.style.color = 'white';
-    ctx.fillStyle = BG_COLOR;
-    ctx.fillRect(0, 0, cnv.width, cnv.height);
+    div.style.background = '#000000';
   } else {
     div.style.top = '';
-    div.style.bottom = '';
+    div.style.bottom = '0';
     div.style['padding-top'] = '';
     div.style.color = '#00FF00';
+    div.style.background = 'rgb(0,0,0)';
+    div.style.background = 'rgba(0,0,0,0.8)';
   }
   div.innerHTML = msg;
 
@@ -1093,9 +1108,8 @@ const showMessage = function (msg, fullscreen) {
 };
 
 const hideMessage = function () {
-  const div = document.getElementById('message');
-  div.innerHTML = '';
-  div.style.visibility = 'hidden';
+  message.innerHTML = '';
+  message.style.visibility = 'hidden';
 };
 
 const checkDest = function ({i, j}) {
@@ -1140,7 +1154,7 @@ const runCommand = function (auto) {
     ls.dead = true;
     LEVEL_STATE.playActive = false;
     animateBump(LEVEL_STATE.guyAnim, ls.guyAt, dest);
-    showMessage(RESET_MESSAGE, false);
+    showMessage(RESET_MESSAGE, false, false);
   }
 };
 
@@ -1167,13 +1181,14 @@ const startLevel = function () {
   } else {
     hideMessage();
   }
+  FIRST_MESSAGE = false;
 
   if (level.guyAt) {
     LEVEL_STATE = initLevel(level);
-    requestDraw();
   } else {
     LEVEL_STATE = null;
   }
+  requestDraw();
 
   if (CUR_LEVEL === LEVELS.length - 1) {
     TOUCHY.unregister();
@@ -1183,8 +1198,15 @@ const startLevel = function () {
 
 const winLevel = function () {
   if (CUR_LEVEL < LEVELS.length - 1) {
-    if (LEVELS[CUR_LEVEL].guyAt && LEVELS[CUR_LEVEL + 1].guyAt) {
+    if (LEVELS[CUR_LEVEL + 1].guyAt) {
       LEVEL_SWITCH = {};
+    } else {
+      if (!FIRST_MESSAGE) {
+        FIRST_MESSAGE = false;
+
+        message.style.left = WHOLE_WIDTH + 'px';
+        LEVEL_SWITCH = {msg: true};
+      }
     }
     CUR_LEVEL += 1;
     getHashFromLevel();
