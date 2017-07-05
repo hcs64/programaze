@@ -63,9 +63,10 @@ let GRID_Y = 10;
 
 const GRID_ANIM_MS = 150;
 const MOVE_ANIM_MS = 250;
-const WIN_DELAY_MS = 50;
+const WIN_DELAY_MS = 500;
 const LEVEL_SWITCH_MS = 500;
 const GUY_SCALE = 0.8;
+const GOAL_SCALE = 0.8;
 
 let LEVEL_STATE = null;
 let LEVEL_SWITCH = null;
@@ -296,6 +297,9 @@ const drawBGGrid = function (grid, t) {
 };
 
 const drawGuy = function ({i, j, w, h}, offset, t) {
+  if (w === 0) {
+    return;
+  }
   const ot = offset * (1 - t);
   const scale = lerp(1, GUY_SCALE, t);
   ctx.fillStyle = GUY_COLOR;
@@ -306,13 +310,14 @@ const drawGuy = function ({i, j, w, h}, offset, t) {
 
 const drawGoal = function ({i, j}, offset, t) {
   const ot = offset * (1 - t);
-  const xMin = GRID_X + GRID_W * i + ot;
+  const gs = lerp(0, (1 - GOAL_SCALE) / 2, t);
+  const xMin = GRID_X + GRID_W * (i + gs) + ot;
   const xMid = GRID_X + GRID_W * (i + 0.5) + ot - 0.5;
-  const xMax = GRID_X + GRID_W * (i + 1) + ot - 1;
+  const xMax = GRID_X + GRID_W * (i + 1 - gs) + ot - 1;
 
-  const yMin = GRID_Y + GRID_H * j;
+  const yMin = GRID_Y + GRID_H * (j + gs);
   const yMid = GRID_Y + GRID_H * (j + 0.5) - 0.5;
-  const yMax = GRID_Y + GRID_H * (j + 1) - 1;
+  const yMax = GRID_Y + GRID_H * (j + 1 - gs) - 1;
 
   ctx.beginPath();
   ctx.moveTo(xMin, yMid);
@@ -618,7 +623,6 @@ const quadInOut = function (t) {
   }
 };
 
-
 const animateMove = function (anim, from, to, auto) {
   const cb = auto ? autoRunCommand : checkForWin;
 
@@ -669,6 +673,67 @@ const animateBump = function (anim, from, to) {
 
 };
 
+const animateWin = function (anim, at, cb) {
+  anim.push(
+    {t: 0, i: at.i, j: at.j, w: 1, h: 1},
+    {t: WIN_DELAY_MS, i: at.i + 0.5, j: at.j + 0.5, w: 0, h: 0, cb, f: quadIn}
+  );
+};
+
+const updateAnim = function (anim, t, valNames) {
+  let curFrame = anim[0];
+  let prevFrame;
+  while (anim.length > 0) {
+    if (!curFrame.offsetSet) {
+      if (prevFrame) {
+        // time is relative to previous frame
+        curFrame.t += prevFrame.t;
+      } else {
+        // otherwise, time is relative to now
+        curFrame.t += t;
+      }
+      curFrame.offsetSet = true;
+    }
+
+    if (t < curFrame.t) {
+      break;
+    }
+
+    if (curFrame.cb) {
+      curFrame.cb(t);
+      curFrame.cb = null;
+    }
+    prevFrame = anim.shift();
+    curFrame = anim[0];
+  }
+
+  const vals = {};
+
+  if (!curFrame && prevFrame) {
+    // past the last keyframe, just use it directly
+    valNames.forEach(n => vals[n] = prevFrame[n]);
+  } else if (curFrame && prevFrame) {
+    // two keyframes to lerp between
+    let tt = (t - prevFrame.t) / (curFrame.t - prevFrame.t);
+    if (curFrame.f) {
+      tt = curFrame.f(tt);
+    }
+
+    valNames.forEach(n => vals[n] = lerp(prevFrame[n], curFrame[n], tt));
+  }
+
+  if (anim.length > 0) {
+    // still animating
+    if (prevFrame) {
+      // restore the previous keyframe to be used again
+      anim.unshift(prevFrame);
+    }
+    requestDraw();
+  }
+
+  return vals;
+}
+
 let DRAW_IN_FLIGHT = false;
 const requestDraw = function () {
   if (!DRAW_IN_FLIGHT) {
@@ -713,105 +778,19 @@ const draw = function (t) {
     return;
   }
 
-  let progress = LEVEL_STATE.progress;
-
-  let curProgressFrame = LEVEL_STATE.progressAnim[0], prevProgressFrame;
-  while (LEVEL_STATE.progressAnim.length > 0) {
-    if (!curProgressFrame.offsetSet) {
-      if (prevProgressFrame) {
-        curProgressFrame.t += prevProgressFrame.t;
-      } else {
-        curProgressFrame.t += t;
-      }
-      curProgressFrame.offsetSet = true;
-    }
-
-    if (t < curProgressFrame.t) {
-      break;
-    }
-
-    if (curProgressFrame.cb) {
-      curProgressFrame.cb(t);
-      curProgressFrame.cb = null;
-    }
-    prevProgressFrame = LEVEL_STATE.progressAnim.shift();
-    curProgressFrame = LEVEL_STATE.progressAnim[0];
-  }
-
-  if (!curProgressFrame && prevProgressFrame) {
-    progress = prevProgressFrame.x;
-  } else if (curProgressFrame && prevProgressFrame) {
-    progress = lerp(prevProgressFrame.x, curProgressFrame.x,
-      (t - prevProgressFrame.t) / (curProgressFrame.t - prevProgressFrame.t));
-  }
-
-
-  if (LEVEL_STATE.progressAnim.length > 0) {
-    if (prevProgressFrame) {
-      LEVEL_STATE.progressAnim.unshift(prevProgressFrame);
-    }
-    requestDraw();
-  }
+  const {x: progressFromAnim} = updateAnim(LEVEL_STATE.progressAnim, t, ['x']);
+  const progress = typeof progressFromAnim === 'number' ? progressFromAnim :
+                   LEVEL_STATE.progress;
 
   drawBGGrid(LEVEL_STATE.grid, progress);
 
   drawGoal(LEVEL_STATE.goalAt,
     LEVEL_STATE.goalAt.i % 2 === 0 ? PAIR_OFFSET : -PAIR_OFFSET, progress);
 
-  let guy = {i: LEVEL_STATE.guyAt.i, j: LEVEL_STATE.guyAt.j, w: 1, h: 1};
 
-  let curAnimFrame = LEVEL_STATE.guyAnim[0], prevAnimFrame;
-  while (LEVEL_STATE.guyAnim.length > 0) {
-    if (!curAnimFrame.offsetSet) {
-      if (prevAnimFrame) {
-        // time is relative to previous frame
-        curAnimFrame.t += prevAnimFrame.t;
-      } else {
-        // otherwise, time is relative to now
-        curAnimFrame.t += t;
-      }
-      curAnimFrame.offsetSet = true;
-    }
-
-    if (t < curAnimFrame.t) {
-      break;
-    }
-
-    if (curAnimFrame.cb) {
-      curAnimFrame.cb(t);
-      curAnimFrame.cb = null;
-    }
-    prevAnimFrame = LEVEL_STATE.guyAnim.shift();
-    curAnimFrame = LEVEL_STATE.guyAnim[0];
-  }
-
-  if (!curAnimFrame && prevAnimFrame) {
-    // past the last keyframe, just use it directly
-    guy = {i: prevAnimFrame.i, j: prevAnimFrame.j, w: prevAnimFrame.w, h: prevAnimFrame.h};
-  } else if (curAnimFrame && prevAnimFrame) {
-    // two keyframes to lerp between
-    let tt = (t - prevAnimFrame.t) / ( curAnimFrame.t - prevAnimFrame.t);
-    if (curAnimFrame.f) {
-      tt = curAnimFrame.f(tt);
-    }
-
-    guy = {
-      i: lerp(prevAnimFrame.i, curAnimFrame.i, tt),
-      j: lerp(prevAnimFrame.j, curAnimFrame.j, tt),
-      w: lerp(prevAnimFrame.w, curAnimFrame.w, tt),
-      h: lerp(prevAnimFrame.h, curAnimFrame.h, tt),
-    };
-  }
-
-  if (LEVEL_STATE.guyAnim.length > 0) {
-    // still animating
-    if (prevAnimFrame) {
-      // restore the previous keyframe to be used again
-      LEVEL_STATE.guyAnim.unshift(prevAnimFrame);
-    }
-    requestDraw();
-  }
-
+  const guyFromAnim = updateAnim(LEVEL_STATE.guyAnim, t, ['i','j','w','h']);
+  const guy = typeof guyFromAnim.i === 'number' ? guyFromAnim :
+              {i: LEVEL_STATE.guyAt.i, j: LEVEL_STATE.guyAt.j, w: 1, h: 1};
 
   drawGuy({i: guy.i, j: guy.j,
            w: guy.w, h: guy.h },
@@ -1164,7 +1143,7 @@ const runCommand = function (auto) {
 const checkForWin = function () {
   const ls = LEVEL_STATE;
   if (ls.guyAt.i === ls.goalAt.i && ls.guyAt.j === ls.goalAt.j) {
-    window.setTimeout(winLevel, WIN_DELAY_MS);
+    animateWin(LEVEL_STATE.guyAnim, ls.guyAt, winLevel);
     return true;
   }
   return false;
