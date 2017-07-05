@@ -63,7 +63,7 @@ let GRID_Y = 10;
 
 const GRID_ANIM_MS = 250;
 const MOVE_ANIM_MS = 250;
-const WIN_DELAY_MS = 500;
+const WIN_DELAY_MS = 350;
 const LEVEL_SWITCH_MS = 500;
 const GUY_SCALE = 0.8;
 const GOAL_SCALE = 0.8;
@@ -803,7 +803,7 @@ const draw = function (t) {
   drawLegend(LEVEL_STATE.limitedLegend, progress);
 
   if (progress === 1) {
-    if (LEVEL_STATE.guyAnim.length > 0 && !LEVEL_STATE.dead) {
+    if (LEVEL_STATE.guyAnim.length > 0 && !LEVEL_STATE.dead && !LEVEL_STATE.won) {
       drawPC(LEVEL_STATE.pc - 1)
     } else {
       drawPC(LEVEL_STATE.pc);
@@ -1144,6 +1144,7 @@ const runCommand = function (auto) {
 const checkForWin = function () {
   const ls = LEVEL_STATE;
   if (ls.guyAt.i === ls.goalAt.i && ls.guyAt.j === ls.goalAt.j) {
+    ls.won = true;
     animateWin(LEVEL_STATE.guyAnim, ls.guyAt, function () {
       setTimeout(winLevel, 0);
     });
