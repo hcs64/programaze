@@ -179,29 +179,20 @@ const draw0 = function (ctx, {x, y}, offset, t) {
   if (t >= 1) {
     return;
   }
-  {
-    const lineW0 = (ZERO_W - ZERO_INNER_W) / 2;
-    const x0 = x + (GRID_W - ZERO_W + lineW0)/2 + offset;
-    const y0 = y + (GRID_H - ZERO_H + lineW0)/2;
-    const w0 = ZERO_W - lineW0;
-    const h0 = ZERO_H - lineW0;
+  const lineW0 = (ZERO_W - ZERO_INNER_W) / 2;
+  const x0 = x + (GRID_W - ZERO_W + lineW0)/2 + offset;
+  const y0 = y + (GRID_H - ZERO_H + lineW0)/2;
+  const w0 = ZERO_W - lineW0;
+  const h0 = ZERO_H - lineW0;
+  const a0 = 1;
 
-    const lineW1 = 0;
-    const x1 = x + GRID_W/2;
-    const y1 = y + GRID_H/2;
-    const w1 = 0;
-    const h1 = 0;
+  const a1 = 0;
 
-    const xN = lerp(x0, x1, t);
-    const yN = lerp(y0, y1, t);
-    const wN = lerp(w0, w1, t);
-    const hN = lerp(h0, h1, t);
-    const lineWN = lerp(lineW0, lineW1, t);
+  const aN = lerp(a0, a1, t);
 
-    ctx.lineWidth = lineWN;
-    ctx.strokeStyle = 'white';
-    ctx.strokeRect(xN, yN, wN, hN);
-  }
+  ctx.lineWidth = lineW0;
+  ctx.strokeStyle = `rgba(255,255,255,${aN})`;
+  ctx.strokeRect(x0, y0, w0, h0);
 };
 
 const drawIcon0 = function (ctx, x, y, w, h) {
