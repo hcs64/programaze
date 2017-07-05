@@ -667,6 +667,15 @@ const animateWin = function (anim, at, cb) {
   );
 };
 
+const animateResetGuy = function (anim, from, to) {
+  anim.push(
+    {t: 0, i: from.i, j: from.j, w: 1, h: 1},
+    {t: GRID_ANIM_MS / 2, i: from.i + 0.5, j: from.j + 0.5, w: 0, h: 0, f: quadIn},
+    {t: GRID_ANIM_MS / 2, i: to.i   + 0.5, j: to.j   + 0.5, w: 0, h: 0},
+    {t: GRID_ANIM_MS, i: to.i, j: to.j, w: 1, h: 1, f: quadOut}
+  );
+};
+
 const updateAnim = function (anim, t, valNames) {
   let curFrame = anim[0];
   let prevFrame;
@@ -781,7 +790,7 @@ const draw = function (t) {
 
   drawGuy({i: guy.i, j: guy.j,
            w: guy.w, h: guy.h },
-           guy.i % 2 === 0 ? PAIR_OFFSET : -PAIR_OFFSET, progress);
+           LEVEL_STATE.guyAt.i % 2 === 0 ? PAIR_OFFSET : -PAIR_OFFSET, progress);
 
   drawGrid(LEVEL_STATE.grid, progress,
            LEVEL_STATE.guyAt, LEVEL_STATE.goalAt);
@@ -1014,12 +1023,17 @@ const initLevel = function (level) {
 
 const resetLevel = function (state) {
   // doesn't touch grid
+  state.guyAnim = [];
+  if (state.guyAt &&
+      (state.guyAt.i !== state.guyAtInit.i ||
+       state.guyAt.j !== state.guyAtInit.j)) {
+    animateResetGuy(state.guyAnim, state.guyAt, state.guyAtInit);
+  }
   state.guyAt = {i: state.guyAtInit.i, j: state.guyAtInit.j};
   state.pc = 0;
   state.playActive = false;
   state.stepActive = false;
   animateProgress(state, 0);
-  state.guyAnim = [];
 
   if (state.msg) {
     showMessage(state.msg, false);
