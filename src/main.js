@@ -671,8 +671,8 @@ const animateResetGuy = function (anim, from, to) {
   anim.push(
     {t: 0, i: from.i, j: from.j, w: 1, h: 1},
     {t: GRID_ANIM_MS / 2, i: from.i + 0.5, j: from.j + 0.5, w: 0, h: 0, f: quadIn},
-    {t: GRID_ANIM_MS / 2, i: to.i   + 0.5, j: to.j   + 0.5, w: 0, h: 0},
-    {t: GRID_ANIM_MS, i: to.i, j: to.j, w: 1, h: 1, f: quadOut}
+    {t: 0, i: to.i + 0.5, j: to.j + 0.5, w: 0, h: 0},
+    {t: GRID_ANIM_MS / 2, i: to.i, j: to.j, w: 1, h: 1, f: quadOut}
   );
 };
 
@@ -1144,7 +1144,9 @@ const runCommand = function (auto) {
 const checkForWin = function () {
   const ls = LEVEL_STATE;
   if (ls.guyAt.i === ls.goalAt.i && ls.guyAt.j === ls.goalAt.j) {
-    animateWin(LEVEL_STATE.guyAnim, ls.guyAt, winLevel);
+    animateWin(LEVEL_STATE.guyAnim, ls.guyAt, function () {
+      setTimeout(winLevel, 0);
+    });
     return true;
   }
   return false;
