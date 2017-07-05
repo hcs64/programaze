@@ -17,7 +17,6 @@ const ZERO_H = GRID_H * .6;
 const ONE_W = GRID_W * .2;
 const ONE_H = GRID_H * .6;
 const ZERO_INNER_W = GRID_W * .3;
-const ZERO_INNER_H = GRID_H * .3;
 const PAIR_OFFSET = 4;
 
 const EQ_W = GRID_W * .7;
@@ -175,16 +174,18 @@ const lerp = function (x0, x1, t) {
   return x0 + (x1 - x0) * t;
 };
 
-const draw0 = function (ctx, {x, y}, offset, holeColor, t) {
+const draw0 = function (ctx, {x, y}, offset, t) {
   if (t >= 1) {
     return;
   }
   {
-    const x0 = x + (GRID_W - ZERO_W)/2 + offset;
-    const y0 = y + (GRID_H - ZERO_H)/2;
-    const w0 = ZERO_W;
-    const h0 = ZERO_H;
+    const lineW0 = (ZERO_W - ZERO_INNER_W) / 2;
+    const x0 = x + (GRID_W - ZERO_W + lineW0)/2 + offset;
+    const y0 = y + (GRID_H - ZERO_H + lineW0)/2;
+    const w0 = ZERO_W - lineW0;
+    const h0 = ZERO_H - lineW0;
 
+    const lineW1 = 0;
     const x1 = x + GRID_W/2;
     const y1 = y + GRID_H/2;
     const w1 = 0;
@@ -194,27 +195,11 @@ const draw0 = function (ctx, {x, y}, offset, holeColor, t) {
     const yN = lerp(y0, y1, t);
     const wN = lerp(w0, w1, t);
     const hN = lerp(h0, h1, t);
-    ctx.fillStyle = 'white';
-    ctx.fillRect(xN, yN, wN, hN)
-  }
-  {
-    const x0 = x + (GRID_W - ZERO_INNER_W)/2 + offset;
-    const y0 = y + (GRID_H - ZERO_INNER_H)/2;
-    const w0 = ZERO_INNER_W;
-    const h0 = ZERO_INNER_H;
+    const lineWN = lerp(lineW0, lineW1, t);
 
-    const x1 = x + GRID_W/2;
-    const y1 = y + GRID_H/2;
-    const w1 = 0;
-    const h1 = 0;
-
-    const xN = lerp(x0, x1, t);
-    const yN = lerp(y0, y1, t);
-    const wN = lerp(w0, w1, t);
-    const hN = lerp(h0, h1, t);
-
-    ctx.fillStyle = holeColor;
-    ctx.fillRect(xN, yN, wN, hN);
+    ctx.lineWidth = lineWN;
+    ctx.strokeStyle = 'white';
+    ctx.strokeRect(xN, yN, wN, hN);
   }
 };
 
@@ -222,7 +207,7 @@ const drawIcon0 = function (ctx, x, y, w, h) {
   ctx.save();
   ctx.scale(w / GRID_W, h / GRID_H);
 
-  draw0(ctx, {x: x * GRID_W / w, y: y * GRID_H / h}, 0, 'black', 0);
+  draw0(ctx, {x: x * GRID_W / w, y: y * GRID_H / h}, 0, 0);
 
   ctx.restore();
 };
@@ -278,19 +263,10 @@ const drawGrid = function (grid, t, guyAt, goalAt) {
       const y = GRID_Y + j * GRID_H;
       const offset = (i % 2) === 0 ? PAIR_OFFSET : -PAIR_OFFSET;
 
-      let holeColor;
-      if (i === guyAt.i && j === guyAt.j) {
-        holeColor = GUY_COLOR;
-      } else if (i === goalAt.i && j === goalAt.j) {
-        holeColor = GOAL_COLOR;
-      } else {
-        holeColor = BG_COLOR;
-      }
-
       if (grid[j][i] === 1) {
         draw1(ctx, {x, y}, offset, t);
       } else {
-        draw0(ctx, {x, y}, offset, holeColor, t);
+        draw0(ctx, {x, y}, offset, t);
       } // end else (0)
     } // end i loop
   } // end j loop
@@ -319,18 +295,33 @@ const drawBGGrid = function (grid, t) {
   }
 };
 
-const drawGuy = function ({i, j, w, h}, t) {
+const drawGuy = function ({i, j, w, h}, offset, t) {
+  const ot = offset * (1 - t);
   const scale = lerp(1, GUY_SCALE, t);
   ctx.fillStyle = GUY_COLOR;
-  ctx.fillRect(GRID_X + GRID_W * i + GRID_W * w * (1 - scale) / 2,
+  ctx.fillRect(GRID_X + GRID_W * i + GRID_W * w * (1 - scale) / 2 + ot,
                GRID_Y + GRID_H * j + GRID_H * h * (1 - scale) / 2,
                GRID_W * w * scale - 1, GRID_H * h * scale - 1);
 };
 
-const drawGoal = function ({i, j}) {
+const drawGoal = function ({i, j}, offset, t) {
+  const ot = offset * (1 - t);
+  const xMin = GRID_X + GRID_W * i + ot;
+  const xMid = GRID_X + GRID_W * (i + 0.5) + ot - 0.5;
+  const xMax = GRID_X + GRID_W * (i + 1) + ot - 1;
+
+  const yMin = GRID_Y + GRID_H * j;
+  const yMid = GRID_Y + GRID_H * (j + 0.5) - 0.5;
+  const yMax = GRID_Y + GRID_H * (j + 1) - 1;
+
+  ctx.beginPath();
+  ctx.moveTo(xMin, yMid);
+  ctx.lineTo(xMid, yMin);
+  ctx.lineTo(xMax, yMid);
+  ctx.lineTo(xMid, yMax);
+  ctx.closePath();
   ctx.fillStyle = GOAL_COLOR;
-  ctx.fillRect(GRID_X + GRID_W * i, GRID_Y + GRID_H * j,
-               GRID_W-1, GRID_H-1);
+  ctx.fill();
 };
 
 const drawPC = function (pc) {
@@ -471,10 +462,10 @@ const drawLegend = function (limited, t) {
 
   ctx.lineWidth = 1;
   drawLegendBGTile({x,y}, t);
-  draw0(ctx, {x, y}, PAIR_OFFSET, BG_COLOR, t);
+  draw0(ctx, {x, y}, PAIR_OFFSET, t);
   x += w;
   drawLegendBGTile({x,y}, t);
-  draw0(ctx, {x, y}, -PAIR_OFFSET, BG_COLOR, t);
+  draw0(ctx, {x, y}, -PAIR_OFFSET, t);
   x += w;
   drawEq({x, y});
   x += EQ_W;
@@ -495,7 +486,7 @@ const drawLegend = function (limited, t) {
   if (!limited) {
     ctx.lineWidth = 1;
     drawLegendBGTile({x,y}, t);
-    draw0(ctx, {x, y}, PAIR_OFFSET, BG_COLOR, t);
+    draw0(ctx, {x, y}, PAIR_OFFSET, t);
     x += w;
     draw1(ctx, {x, y}, -PAIR_OFFSET, t);
     x += w;
@@ -519,7 +510,7 @@ const drawLegend = function (limited, t) {
     draw1(ctx, {x, y}, PAIR_OFFSET, t);
     x += w;
     drawLegendBGTile({x,y}, t);
-    draw0(ctx, {x, y}, -PAIR_OFFSET, BG_COLOR, t);
+    draw0(ctx, {x, y}, -PAIR_OFFSET, t);
     x += w;
     drawEq({x, y});
     x += EQ_W;
@@ -764,7 +755,8 @@ const draw = function (t) {
 
   drawBGGrid(LEVEL_STATE.grid, progress);
 
-  drawGoal(LEVEL_STATE.goalAt);
+  drawGoal(LEVEL_STATE.goalAt,
+    LEVEL_STATE.goalAt.i % 2 === 0 ? PAIR_OFFSET : -PAIR_OFFSET, progress);
 
   let guy = {i: LEVEL_STATE.guyAt.i, j: LEVEL_STATE.guyAt.j, w: 1, h: 1};
 
@@ -822,7 +814,8 @@ const draw = function (t) {
 
 
   drawGuy({i: guy.i, j: guy.j,
-           w: guy.w, h: guy.h }, progress);
+           w: guy.w, h: guy.h },
+           guy.i % 2 === 0 ? PAIR_OFFSET : -PAIR_OFFSET, progress);
 
   drawGrid(LEVEL_STATE.grid, progress,
            LEVEL_STATE.guyAt, LEVEL_STATE.goalAt);
