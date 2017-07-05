@@ -61,7 +61,7 @@ const PORTRAIT_GRID_Y = 230;
 let GRID_X = 10;
 let GRID_Y = 10;
 
-const GRID_ANIM_MS = 150;
+const GRID_ANIM_MS = 250;
 const MOVE_ANIM_MS = 250;
 const WIN_DELAY_MS = 500;
 const LEVEL_SWITCH_MS = 500;
@@ -235,8 +235,8 @@ const draw1 = function (ctx, {x, y}, offset, t) {
 
   if (t > 0) {
     const v = Math.floor(lerp(255, 64, t));
+    ctx.lineWidth = t;
     ctx.strokeStyle = `rgb(${v},${v},${v})`;
-
     ctx.strokeRect(xN - .5, yN - .5, wN, hN);
   }
 };
@@ -465,7 +465,6 @@ const drawLegend = function (limited, t) {
   const w = GRID_W;
   const h = GRID_H;
 
-  ctx.lineWidth = 1;
   drawLegendBGTile({x,y}, t);
   draw0(ctx, {x, y}, PAIR_OFFSET, t);
   x += w;
@@ -489,7 +488,6 @@ const drawLegend = function (limited, t) {
   y += h;
 
   if (!limited) {
-    ctx.lineWidth = 1;
     drawLegendBGTile({x,y}, t);
     draw0(ctx, {x, y}, PAIR_OFFSET, t);
     x += w;
@@ -511,7 +509,6 @@ const drawLegend = function (limited, t) {
     x = initX;
     y += h;
 
-    ctx.lineWidth = 1;
     draw1(ctx, {x, y}, PAIR_OFFSET, t);
     x += w;
     drawLegendBGTile({x,y}, t);
@@ -533,7 +530,6 @@ const drawLegend = function (limited, t) {
     x = initX;
     y += h;
 
-    ctx.lineWidth = 1;
     draw1(ctx, {x, y}, PAIR_OFFSET, t);
     x += w;
     draw1(ctx, {x, y}, -PAIR_OFFSET, t);
@@ -565,7 +561,7 @@ const toggleBit = function (state, {i, j}) {
 const animateProgress = function (state, progress, cb) {
   if (state.progress !== progress) {
     state.progressAnim.push(
-      {t: 0, x: state.progress}, {t: GRID_ANIM_MS, x: progress, cb});
+      {t: 0, x: state.progress}, {t: GRID_ANIM_MS, x: progress, cb, f: quadInOut});
     state.progress = progress;
   } else if (cb) {
     cb();
