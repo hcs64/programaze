@@ -63,10 +63,14 @@ let GRID_Y = 10;
 
 const GRID_ANIM_MS = 250;
 const MOVE_ANIM_MS = 250;
+const OUCH_ANIM_MS = 500;
 const WIN_DELAY_MS = 350;
 const LEVEL_SWITCH_MS = 500;
 const GUY_SCALE = 0.8;
 const GOAL_SCALE = 0.8;
+const OUCH_DIST = 0;
+const OUCH_SPREAD = 0.5;
+const OUCH_WIDTH = 0.125;
 
 let LEVEL_STATE = null;
 let LEVEL_SWITCH = null;
@@ -285,6 +289,11 @@ const drawBGGrid = function (grid, t) {
       }
     }
   }
+};
+
+const drawOuch = function ({b, i, j, w, h}) {
+  ctx.fillStyle = `rgba(255,0,0,${b})`;
+  ctx.fillRect(GRID_X + i * GRID_W, GRID_Y + j * GRID_H, w * GRID_W, h * GRID_H);
 };
 
 const drawGuy = function ({i, j, w, h}, offset, t) {
@@ -632,7 +641,7 @@ const animateMove = function (anim, from, to, auto) {
 };
 
 const animateBump = function (anim, from, to) {
-  // how far it gets before the bump
+  // NOTE: This function is a huge hack that somehow works OK
   const amt = (1 - GUY_SCALE) / 2;
   const di = to.i - from.i;
   const dj = to.j - from.j;
@@ -658,6 +667,45 @@ const animateBump = function (anim, from, to) {
     {t: MOVE_ANIM_MS * amt * 5, i: from.i, j: from.j, w: 1, h: 1},
   );
 
+};
+
+const animateOuch = function (anim, from, to) {
+  const di = to.i - from.i;
+  const dj = to.j - from.j;
+  const amt = (1 - GUY_SCALE) / 2;
+  let i, j, w, h;
+  if (di === 0) {
+    w = 1;
+    h = OUCH_WIDTH;
+    i = from.i;
+    if (dj < 0) {
+      // up
+      j = from.j - h / 2;
+    } else {
+      // down
+      j = from.j + 1 - h / 2;
+    }
+  } else {
+    w = OUCH_WIDTH;
+    h = 1;
+    j = from.j;
+    if (di < 0) {
+      // left
+      i = from.i - w / 2;
+    } else {
+      // right
+      i = from.i + 1 - w / 2;
+    }
+  }
+
+  anim.push(
+    {t: MOVE_ANIM_MS * amt * 2, b: 1, i, j, w, h},
+    {t: OUCH_ANIM_MS, b: 0,
+     i: i + di * OUCH_DIST - Math.abs(dj) * OUCH_SPREAD / 2,
+     j: j + dj * OUCH_DIST - Math.abs(di) * OUCH_SPREAD / 2,
+     w: w + Math.abs(dj) * OUCH_SPREAD,
+     h: h + Math.abs(di) * OUCH_SPREAD}
+  );
 };
 
 const animateWin = function (anim, at, cb) {
@@ -794,6 +842,11 @@ const draw = function (t) {
 
   drawGrid(LEVEL_STATE.grid, progress,
            LEVEL_STATE.guyAt, LEVEL_STATE.goalAt);
+
+  const ouch = updateAnim(LEVEL_STATE.ouchAnim, t, ['b', 'i', 'j', 'w', 'h']);
+  if (typeof ouch.b === 'number') {
+    drawOuch(ouch);
+  }
 
   drawControls(!LEVEL_STATE.noPlay && !LEVEL_STATE.dead,
     (LEVEL_STATE.playActive || LEVEL_STATE.stepActive || LEVEL_STATE.dead),
@@ -1015,6 +1068,7 @@ const initLevel = function (level) {
 
   state.progressAnim = [];
   state.guyAnim = [];
+  state.ouchAnim = [];
 
   resetLevel(state);
 
@@ -1024,6 +1078,7 @@ const initLevel = function (level) {
 const resetLevel = function (state) {
   // doesn't touch grid
   state.guyAnim = [];
+  state.ouchAnim = [];
   if (state.guyAt &&
       (state.guyAt.i !== state.guyAtInit.i ||
        state.guyAt.j !== state.guyAtInit.j)) {
@@ -1137,6 +1192,8 @@ const runCommand = function (auto) {
     ls.dead = true;
     LEVEL_STATE.playActive = false;
     animateBump(LEVEL_STATE.guyAnim, ls.guyAt, dest);
+    LEVEL_STATE.ouchAnim = [];
+    animateOuch(LEVEL_STATE.ouchAnim, ls.guyAt, dest);
     showMessage(RESET_MESSAGE, false, false);
   }
 };
