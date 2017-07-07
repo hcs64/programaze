@@ -850,7 +850,7 @@ const draw = function (t) {
 
   drawLegend(LEVEL_STATE.limitedLegend, progress);
 
-  if (progress === 1) {
+  if (progress === 1 && LEVEL_STATE.progressAnim.length === 0) {
     if (LEVEL_STATE.guyAnim.length > 0 && !LEVEL_STATE.dead && !LEVEL_STATE.won) {
       drawPC(LEVEL_STATE.pc - 1)
     } else {
