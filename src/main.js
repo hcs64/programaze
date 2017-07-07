@@ -3,8 +3,8 @@
 (function(){
 'use strict';
 
-const GUY_COLOR = 'orange';
-const GOAL_COLOR = 'cornflowerblue';
+const GUY_COLOR = 'cornflowerblue';
+const GOAL_COLOR = 'orange';
 const BG_COLOR = 'black';
 const CONTROL_COLOR = 'white';
 
@@ -18,6 +18,10 @@ const ONE_W = GRID_W * .2;
 const ONE_H = GRID_H * .6;
 const ZERO_INNER_W = GRID_W * .3;
 const PAIR_OFFSET = 4;
+
+const GOAL_LINE_WIDTH = 6;
+const PC_LINE_WIDTH = 2;
+const BORDER_WIDTH = 2;
 
 const EQ_W = GRID_W * .7;
 
@@ -66,8 +70,8 @@ const MOVE_ANIM_MS = 250;
 const OUCH_ANIM_MS = 500;
 const WIN_DELAY_MS = 350;
 const LEVEL_SWITCH_MS = 500;
+const GUY_FULL_SCALE = 0.85;
 const GUY_SCALE = 0.8;
-const GOAL_SCALE = 0.8;
 const OUCH_DIST = 0;
 const OUCH_SPREAD = 0.5;
 const OUCH_WIDTH = 0.125;
@@ -267,7 +271,7 @@ const drawGrid = function (grid, t, guyAt, goalAt) {
     } // end i loop
   } // end j loop
 
-  ctx.lineWidth = 2;
+  ctx.lineWidth = BORDER_WIDTH;
   ctx.strokeStyle = 'grey';
   ctx.strokeRect(GRID_X, GRID_Y, GRID_W * GRID_COLS, GRID_H * GRID_ROWS);
 };
@@ -301,7 +305,7 @@ const drawGuy = function ({i, j, w, h}, offset, t) {
     return;
   }
   const ot = offset * (1 - t);
-  const scale = lerp(1, GUY_SCALE, t);
+  const scale = lerp(GUY_FULL_SCALE, GUY_SCALE, t);
   ctx.fillStyle = GUY_COLOR;
   ctx.fillRect(GRID_X + GRID_W * i + GRID_W * w * (1 - scale) / 2 + ot,
                GRID_Y + GRID_H * j + GRID_H * h * (1 - scale) / 2,
@@ -309,24 +313,15 @@ const drawGuy = function ({i, j, w, h}, offset, t) {
 };
 
 const drawGoal = function ({i, j}, offset, t) {
+
   const ot = offset * (1 - t);
-  const gs = lerp(0, (1 - GOAL_SCALE) / 2, t);
-  const xMin = GRID_X + GRID_W * (i + gs) + ot;
-  const xMid = GRID_X + GRID_W * (i + 0.5) + ot - 0.5;
-  const xMax = GRID_X + GRID_W * (i + 1 - gs) + ot - 1;
 
-  const yMin = GRID_Y + GRID_H * (j + gs);
-  const yMid = GRID_Y + GRID_H * (j + 0.5) - 0.5;
-  const yMax = GRID_Y + GRID_H * (j + 1 - gs) - 1;
+  ctx.strokeStyle = GOAL_COLOR;
+  ctx.lineWidth = GOAL_LINE_WIDTH;
 
-  ctx.beginPath();
-  ctx.moveTo(xMin, yMid);
-  ctx.lineTo(xMid, yMin);
-  ctx.lineTo(xMax, yMid);
-  ctx.lineTo(xMid, yMax);
-  ctx.closePath();
-  ctx.fillStyle = GOAL_COLOR;
-  ctx.fill();
+  ctx.strokeRect(GRID_X + GRID_W * i + GOAL_LINE_WIDTH / 2 + ot,
+                 GRID_Y + GRID_H * j + GOAL_LINE_WIDTH / 2,
+                 GRID_W - GOAL_LINE_WIDTH, GRID_H - GOAL_LINE_WIDTH);
 };
 
 const drawPC = function (pc) {
@@ -337,7 +332,7 @@ const drawPC = function (pc) {
   const j = Math.floor(pc / 4);
   const i = (pc - j * 4) * 2;
   ctx.strokeStyle = 'red';
-  ctx.lineWidth = 2;
+  ctx.lineWidth = PC_LINE_WIDTH;
 
   ctx.strokeRect(GRID_X + GRID_W * i, GRID_Y + GRID_H * j,
                  GRID_W * 2 - 1, GRID_H - 1);
@@ -961,8 +956,8 @@ const LEVELS = [
   // 0
   { msg: 'Welcome to <big>PrograMaze</big>!<br><br>' +
          'The object of each level is to move the ' +
-         '<span style="color: ' + GUY_COLOR + '">orange</span> box to the ' +
-         '<span style ="color: ' + GOAL_COLOR + '">blue</span> goal.<br><br>' +
+         '<span style="color: ' + GUY_COLOR + '">blue</span> box to the ' +
+         '<span style ="color: ' + GOAL_COLOR + '">orange</span> goal.<br><br>' +
          'Tap or click to begin'},
   // 1
   {
